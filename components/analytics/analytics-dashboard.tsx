@@ -51,60 +51,60 @@ export function AnalyticsDashboard({ survey, questions, sessions, responses, use
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link href="/dashboard">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100/80 dark:hover:bg-gray-700/80">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
           </Link>
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-blue-600" />
-            <h1 className="text-2xl font-bold">Survey Analytics</h1>
+            <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Survey Analytics</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {isPublished && <Badge variant="default">Published</Badge>}
+          {isPublished && <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">Published</Badge>}
           <ExportMenu surveyId={survey.id} surveyTitle={survey.title} />
         </div>
       </div>
 
       {/* Survey Info */}
-      <Card className="mb-8">
+      <Card className="mb-8 border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>{survey.title}</CardTitle>
-          {survey.description && <CardDescription>{survey.description}</CardDescription>}
+          <CardTitle className="text-gray-900 dark:text-white">{survey.title}</CardTitle>
+          {survey.description && <CardDescription className="text-gray-700 dark:text-gray-300">{survey.description}</CardDescription>}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="flex items-center gap-3">
-              <Users className="h-8 w-8 text-blue-600" />
+              <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
               <div>
-                <div className="text-2xl font-bold">{completedSessions.length}</div>
-                <div className="text-sm text-gray-600">Responses</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{completedSessions.length}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Responses</div>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <TrendingUp className="h-8 w-8 text-green-600" />
+              <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
               <div>
-                <div className="text-2xl font-bold">{Math.round(completionRate)}%</div>
-                <div className="text-sm text-gray-600">Completion Rate</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(completionRate)}%</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</div>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Clock className="h-8 w-8 text-orange-600" />
+              <Clock className="h-8 w-8 text-orange-600 dark:text-orange-400" />
               <div>
-                <div className="text-2xl font-bold">{formatTime(avgCompletionTime)}</div>
-                <div className="text-sm text-gray-600">Avg. Time</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatTime(avgCompletionTime)}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Avg. Time</div>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Brain className="h-8 w-8 text-purple-600" />
+              <Brain className="h-8 w-8 text-purple-600 dark:text-purple-400" />
               <div>
-                <div className="text-2xl font-bold">{questions.length}</div>
-                <div className="text-sm text-gray-600">Questions</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{questions.length}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Questions</div>
               </div>
             </div>
           </div>
@@ -113,11 +113,11 @@ export function AnalyticsDashboard({ survey, questions, sessions, responses, use
 
       {/* Analytics Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="questions">Questions</TabsTrigger>
-          <TabsTrigger value="responses">Responses</TabsTrigger>
-          <TabsTrigger value="insights">AI Insights</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white text-gray-700 dark:text-gray-300">Overview</TabsTrigger>
+          <TabsTrigger value="questions" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white text-gray-700 dark:text-gray-300">Questions</TabsTrigger>
+          <TabsTrigger value="responses" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white text-gray-700 dark:text-gray-300">Responses</TabsTrigger>
+          <TabsTrigger value="insights" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white text-gray-700 dark:text-gray-300">AI Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">

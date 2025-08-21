@@ -252,23 +252,24 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
       )}
 
       <div className="space-y-6">
-        <Card>
+        <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle>Survey Details</CardTitle>
+            <CardTitle className="text-gray-900 dark:text-white">Survey Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="title">Survey Title</Label>
+              <Label htmlFor="title" className="text-gray-800 dark:text-gray-200">Survey Title</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={needsDbSetup ? "Run database scripts first..." : "Enter survey title..."}
                 disabled={needsDbSetup}
+                className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
             </div>
             <div>
-              <Label htmlFor="description">Description (Optional)</Label>
+              <Label htmlFor="description" className="text-gray-800 dark:text-gray-200">Description (Optional)</Label>
               <Textarea
                 id="description"
                 value={description}
@@ -276,6 +277,7 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
                 placeholder={needsDbSetup ? "Run database scripts first..." : "Describe what this survey is about..."}
                 rows={3}
                 disabled={needsDbSetup}
+                className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
             </div>
           </CardContent>
@@ -285,21 +287,21 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
           <AIQuestionGenerator onQuestionsGenerated={handleAIQuestions} onClose={() => setShowAIGenerator(false)} />
         )}
 
-        <Card>
+        <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Questions</CardTitle>
+              <CardTitle className="text-gray-900 dark:text-white">Questions</CardTitle>
               <div className="flex gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowAIGenerator(true)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                   disabled={needsDbSetup}
                 >
                   <Sparkles className="h-4 w-4" />
                   AI Generate
                 </Button>
-                <Button onClick={addQuestion} className="flex items-center gap-2" disabled={needsDbSetup}>
+                <Button onClick={addQuestion} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl" disabled={needsDbSetup}>
                   <Plus className="h-4 w-4" />
                   Add Question
                 </Button>
@@ -308,13 +310,13 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
           </CardHeader>
           <CardContent>
             {needsDbSetup ? (
-              <div className="text-center py-8 text-gray-400">
-                <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
-                <p className="text-lg font-medium">Database Setup Required</p>
-                <p className="text-sm">Please run the SQL scripts above to enable survey creation.</p>
+              <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-500 dark:text-amber-400" />
+                <p className="text-lg font-medium text-gray-900 dark:text-white">Database Setup Required</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Please run the SQL scripts above to enable survey creation.</p>
               </div>
             ) : questions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                 <p>No questions yet. Add your first question or use AI to generate them.</p>
               </div>
             ) : (

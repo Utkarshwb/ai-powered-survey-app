@@ -50,16 +50,16 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
   return (
     <div className="space-y-6">
       {!insights ? (
-        <Card>
+        <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
           <CardHeader className="text-center">
-            <Sparkles className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <CardTitle>AI-Powered Insights</CardTitle>
-            <CardDescription>
+            <Sparkles className="h-12 w-12 text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+            <CardTitle className="text-gray-900 dark:text-white">AI-Powered Insights</CardTitle>
+            <CardDescription className="text-gray-700 dark:text-gray-300">
               Get intelligent analysis of your survey responses with actionable recommendations
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button onClick={generateInsights} disabled={isGenerating || responses.length === 0}>
+            <Button onClick={generateInsights} disabled={isGenerating || responses.length === 0} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -80,10 +80,10 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
       ) : (
         <div className="space-y-6">
           {/* Overall Sentiment */}
-          <Card>
+          <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
                 Overall Sentiment Analysis
               </CardTitle>
             </CardHeader>
@@ -109,10 +109,10 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
           </Card>
 
           {/* Key Findings */}
-          <Card>
+          <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Lightbulb className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-white">
+                <Lightbulb className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                 Key Findings
               </CardTitle>
             </CardHeader>

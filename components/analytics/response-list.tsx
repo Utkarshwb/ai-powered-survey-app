@@ -79,14 +79,14 @@ export function ResponseList({ sessions, responses, questions }: ResponseListPro
   return (
     <div className="space-y-6">
       {/* Search */}
-      <Card>
+      <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Individual Responses</CardTitle>
-          <CardDescription>View and search through individual survey responses</CardDescription>
+          <CardTitle className="text-gray-900 dark:text-white">Individual Responses</CardTitle>
+          <CardDescription className="text-gray-700 dark:text-gray-300">View and search through individual survey responses</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-gray-400" />
+            <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
             <Input
               placeholder="Search responses..."
               value={searchTerm}
@@ -100,9 +100,9 @@ export function ResponseList({ sessions, responses, questions }: ResponseListPro
       {/* Response List */}
       <div className="space-y-4">
         {filteredSessions.length === 0 ? (
-          <Card>
+          <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
             <CardContent className="text-center py-8">
-              <p className="text-gray-500">{searchTerm ? "No responses match your search." : "No responses yet."}</p>
+              <p className="text-gray-500 dark:text-gray-400">{searchTerm ? "No responses match your search." : "No responses yet."}</p>
             </CardContent>
           </Card>
         ) : (
@@ -111,13 +111,13 @@ export function ResponseList({ sessions, responses, questions }: ResponseListPro
             const completionTime = getCompletionTime(session)
 
             return (
-              <Card key={session.id}>
+              <Card key={session.id} className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:shadow-xl dark:hover:shadow-gray-900/40 transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline">Response #{session.id.slice(-8)}</Badge>
-                        {session.respondent_email && <Badge variant="secondary">{session.respondent_email}</Badge>}
+                        <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">Response #{session.id.slice(-8)}</Badge>
+                        {session.respondent_email && <Badge variant="secondary" className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200">{session.respondent_email}</Badge>}
                       </div>
 
                       <div className="flex items-center gap-4 text-sm text-gray-600">

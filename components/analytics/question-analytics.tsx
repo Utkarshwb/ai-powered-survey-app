@@ -87,15 +87,15 @@ export function QuestionAnalytics({ questions, responses, sessions }: QuestionAn
         const responseRate = sessions.length > 0 ? (responseCount / sessions.length) * 100 : 0
 
         return (
-          <Card key={question.id}>
+          <Card key={question.id} className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-lg">
+                  <CardTitle className="text-lg text-gray-900 dark:text-white">
                     Question {question.order_index + 1}: {question.question_text}
                   </CardTitle>
-                  <CardDescription className="flex items-center gap-2 mt-2">
-                    <Badge variant="outline">{question.question_type.replace("_", " ")}</Badge>
+                  <CardDescription className="flex items-center gap-2 mt-2 text-gray-700 dark:text-gray-300">
+                    <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">{question.question_type.replace("_", " ")}</Badge>
                     <span>
                       {responseCount} responses ({Math.round(responseRate)}%)
                     </span>

@@ -50,10 +50,10 @@ export function ResponseOverview({ sessions, responses, questions }: ResponseOve
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Daily Responses */}
-      <Card>
+      <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Daily Responses</CardTitle>
-          <CardDescription>Response count over the last 7 days</CardDescription>
+          <CardTitle className="text-gray-900 dark:text-white">Daily Responses</CardTitle>
+          <CardDescription className="text-gray-700 dark:text-gray-300">Response count over the last 7 days</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer
@@ -84,10 +84,10 @@ export function ResponseOverview({ sessions, responses, questions }: ResponseOve
       </Card>
 
       {/* Completion Status */}
-      <Card>
+      <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Completion Status</CardTitle>
-          <CardDescription>Survey completion breakdown</CardDescription>
+          <CardTitle className="text-gray-900 dark:text-white">Completion Status</CardTitle>
+          <CardDescription className="text-gray-700 dark:text-gray-300">Survey completion breakdown</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer
@@ -126,10 +126,10 @@ export function ResponseOverview({ sessions, responses, questions }: ResponseOve
       </Card>
 
       {/* Question Response Rates */}
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-2 border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Question Response Rates</CardTitle>
-          <CardDescription>Percentage of respondents who answered each question</CardDescription>
+          <CardTitle className="text-gray-900 dark:text-white">Question Response Rates</CardTitle>
+          <CardDescription className="text-gray-700 dark:text-gray-300">Percentage of respondents who answered each question</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer
