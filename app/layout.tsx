@@ -5,7 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "AI Survey Builder",
+  title: "FormWise - Intelligent Survey Builder",
   description: "Create intelligent surveys with AI-powered question generation",
   generator: "v0.app",
 }

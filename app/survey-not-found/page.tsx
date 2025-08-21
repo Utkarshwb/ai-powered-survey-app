@@ -11,7 +11,7 @@ export default function SurveyNotFoundPage() {
           <div className="text-center">
             <Link href="/" className="flex items-center justify-center gap-2 mb-6">
               <Brain className="h-8 w-8 text-blue-600" />
-              <span className="text-2xl font-bold text-gray-900">AI Survey Builder</span>
+              <span className="text-2xl font-bold text-gray-900">FormWise</span>
             </Link>
           </div>
 
