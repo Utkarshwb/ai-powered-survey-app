@@ -136,7 +136,7 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
         }
       }
 
-      router.push(`/survey/${survey.id}/thank-you`)
+      router.push(`/survey/${survey.id}/thank-you?sessionId=${newSessionId}`)
     } catch (error) {
       console.error("Error submitting survey:", error)
     } finally {

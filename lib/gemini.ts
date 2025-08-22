@@ -361,3 +361,91 @@ IMPORTANT: Return ONLY valid JSON in this exact format (no extra text, no markdo
     }
   }
 }
+
+export async function generatePersonalizedThankYou(
+  surveyTitle: string,
+  questions: any[],
+  responses: Record<string, any>,
+  userName?: string
+) {
+  const cacheKey = getCacheKey(
+    `${surveyTitle}:${JSON.stringify(responses)}`, 
+    'thankyou'
+  )
+  const cached = getFromCache(cacheKey)
+  if (cached) {
+    return { success: true, message: cached }
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+
+    // Analyze responses to understand sentiment and key themes
+    const responseAnalysis = questions.map((q, i) => {
+      const response = responses[q.id]
+      return `${q.question_text}: ${response || 'No response'}`
+    }).join('\n')
+
+    const prompt = `
+Create a personalized, warm, and engaging thank you message for someone who just completed the survey "${surveyTitle}".
+
+Survey Responses Analysis:
+${responseAnalysis}
+
+User Name: ${userName || 'Survey Participant'}
+
+Guidelines:
+- Make it personal and reference specific aspects of their responses when appropriate
+- Keep the tone warm, appreciative, and professional
+- Mention how their specific feedback will be used
+- Include relevant emojis to make it engaging
+- Keep it concise but meaningful (2-3 paragraphs max)
+- Avoid being overly generic or boring
+- Reference the survey topic naturally
+
+IMPORTANT: Return ONLY valid JSON in this exact format (no extra text, no markdown):
+{
+  "subject": "Thank you for your valuable feedback!",
+  "greeting": "Hi [Name]! 👋",
+  "main_message": "Personalized thank you message here...",
+  "impact_statement": "How their responses will make a difference...",
+  "closing": "Warm closing message",
+  "signature": "The FormWise Team 🚀"
+}
+`
+
+    const result = await withTimeout(
+      model.generateContent(prompt),
+      15000
+    )
+    const response = await result.response
+    const text = response.text()
+
+    const fallbackMessage = {
+      subject: "Thank you for your valuable feedback!",
+      greeting: `Hi ${userName || 'Survey Participant'}! 👋`,
+      main_message: `Thank you for taking the time to complete "${surveyTitle}". Your thoughtful responses provide valuable insights that help us improve and better understand what matters most.`,
+      impact_statement: "Your feedback contributes to meaningful improvements and helps shape better experiences for everyone.",
+      closing: "We truly appreciate you being part of our community and sharing your perspective with us!",
+      signature: "The FormWise Team 🚀"
+    }
+
+    const thankYouMessage = validateAndParseJSON(text, fallbackMessage)
+    setCache(cacheKey, thankYouMessage)
+    return { success: true, message: thankYouMessage }
+  } catch (error) {
+    console.error("Error generating personalized thank you:", error)
+    return { 
+      success: false, 
+      error: "Failed to generate personalized message",
+      message: {
+        subject: "Thank you for your participation!",
+        greeting: `Hi ${userName || 'Survey Participant'}! 👋`,
+        main_message: `Thank you for completing "${surveyTitle}". Your responses are valuable to us.`,
+        impact_statement: "Your feedback helps us build better experiences.",
+        closing: "Thank you for being part of our community!",
+        signature: "The FormWise Team 🚀"
+      }
+    }
+  }
+}
