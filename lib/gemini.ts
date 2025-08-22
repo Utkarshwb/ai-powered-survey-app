@@ -1,6 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyBx1kLoVOHr1qWT05ZJhOCIQh7KOC8VEkY")
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY environment variable is required")
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 // Cache for AI responses to avoid redundant calls
 const responseCache = new Map<string, any>()
