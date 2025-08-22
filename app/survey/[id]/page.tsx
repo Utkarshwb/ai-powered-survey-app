@@ -3,10 +3,11 @@ import { createClient } from "@/lib/supabase/server"
 import { SurveyResponse } from "@/components/survey-response/survey-response"
 
 interface SurveyPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function SurveyPage({ params }: SurveyPageProps) {
+  const { id } = await params
   const supabase = await createClient()
 
   try {
@@ -14,7 +15,7 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
     const { data: survey, error: surveyError } = await supabase
       .from("surveys")
       .select("*")
-      .eq("id", params.id)
+      .eq("id", id)
       .eq("is_published", true)
       .single()
 
@@ -26,7 +27,7 @@ export default async function SurveyPage({ params }: SurveyPageProps) {
     const { data: questions, error: questionsError } = await supabase
       .from("questions")
       .select("*")
-      .eq("survey_id", params.id)
+      .eq("survey_id", id)
       .order("order_index")
 
     const validQuestions = questionsError ? [] : questions || []

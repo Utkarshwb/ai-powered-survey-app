@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -104,12 +104,76 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
         body: JSON.stringify({ sessionId: newSessionId }),
       })
 
+      // Check if user provided email and send feedback
+      const emailResponse = findEmailInResponses()
+      if (emailResponse) {
+        try {
+          console.log('📧 Sending survey feedback email to:', emailResponse.email)
+          
+          // Prepare answers array for AI analysis
+          const answersForAI = questions.map((question) => ({
+            question: question.question_text,
+            answer: responses[question.id] || 'No answer provided',
+            type: question.question_type
+          }))
+
+          await fetch("/api/send-survey-feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: emailResponse.email,
+              userName: emailResponse.userName,
+              surveyId: survey.id,
+              surveyTitle: survey.title,
+              answers: answersForAI
+            }),
+          })
+          
+          console.log('✅ Survey feedback email sent successfully')
+        } catch (emailError) {
+          console.error('❌ Failed to send survey feedback email:', emailError)
+          // Don't block survey submission if email fails
+        }
+      }
+
       router.push(`/survey/${survey.id}/thank-you`)
     } catch (error) {
       console.error("Error submitting survey:", error)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Helper function to find email in responses
+  const findEmailInResponses = () => {
+    for (const question of questions) {
+      const response = responses[question.id]
+      if (response && typeof response === 'string') {
+        // Check if response looks like an email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (emailRegex.test(response.trim())) {
+          // Try to extract name from previous question
+          const questionIndex = questions.findIndex(q => q.id === question.id)
+          let userName = 'Survey Participant'
+          
+          // Look for name in previous questions
+          if (questionIndex > 0) {
+            const prevResponse = responses[questions[questionIndex - 1].id]
+            if (prevResponse && typeof prevResponse === 'string' && 
+                prevResponse.length > 0 && prevResponse.length < 100 &&
+                !emailRegex.test(prevResponse)) {
+              userName = prevResponse.trim()
+            }
+          }
+          
+          return {
+            email: response.trim(),
+            userName
+          }
+        }
+      }
+    }
+    return null
   }
 
   if (!questions || questions.length === 0) {

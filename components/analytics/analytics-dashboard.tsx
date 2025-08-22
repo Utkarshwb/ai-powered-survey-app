@@ -1,18 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo, lazy, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Brain, ArrowLeft, Users, Clock, TrendingUp, BarChart3 } from "lucide-react"
+import { Brain, ArrowLeft, Users, Clock, TrendingUp, BarChart3, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { ResponseOverview } from "./response-overview"
-import { QuestionAnalytics } from "./question-analytics"
-import { ResponseList } from "./response-list"
-import { AIInsights } from "./ai-insights"
-import { ExportMenu } from "./export-menu"
 import type { Survey, Question } from "@/lib/types"
+
+// Lazy load heavy components
+const QuestionAnalytics = lazy(() => import("./question-analytics").then(m => ({ default: m.QuestionAnalytics })))
+const ResponseList = lazy(() => import("./response-list").then(m => ({ default: m.ResponseList })))
+const AIInsights = lazy(() => import("./ai-insights").then(m => ({ default: m.AIInsights })))
+const ExportMenu = lazy(() => import("./export-menu").then(m => ({ default: m.ExportMenu })))
+
+// Loading component
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center py-8">
+    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+    <span className="ml-2 text-sm text-gray-500">Loading...</span>
+  </div>
+)
 
 interface AnalyticsDashboardProps {
   survey: Survey
@@ -25,9 +35,20 @@ interface AnalyticsDashboardProps {
 export function AnalyticsDashboard({ survey, questions, sessions, responses, userId }: AnalyticsDashboardProps) {
   const [activeTab, setActiveTab] = useState("overview")
 
-  const completedSessions = sessions.filter((s) => s.completed_at)
-  const totalSessions = sessions.length
-  const completionRate = totalSessions > 0 ? (completedSessions.length / totalSessions) * 100 : 0
+  // Memoize expensive calculations
+  const analytics = useMemo(() => {
+    const completedSessions = sessions.filter((s) => s.completed_at)
+    const totalSessions = sessions.length
+    const completionRate = totalSessions > 0 ? (completedSessions.length / totalSessions) * 100 : 0
+    
+    return {
+      completedSessions,
+      totalSessions,
+      completionRate
+    }
+  }, [sessions])
+
+  const { completedSessions, totalSessions, completionRate } = analytics
 
   // Calculate average completion time
   const completionTimes = completedSessions
@@ -64,7 +85,9 @@ export function AnalyticsDashboard({ survey, questions, sessions, responses, use
 
         <div className="flex items-center gap-2">
           {isPublished && <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">Published</Badge>}
-          <ExportMenu surveyId={survey.id} surveyTitle={survey.title} />
+          <Suspense fallback={<div className="w-20 h-8 bg-gray-200 animate-pulse rounded" />}>
+            <ExportMenu surveyId={survey.id} surveyTitle={survey.title} />
+          </Suspense>
         </div>
       </div>
 
@@ -125,15 +148,21 @@ export function AnalyticsDashboard({ survey, questions, sessions, responses, use
         </TabsContent>
 
         <TabsContent value="questions" className="space-y-6">
-          <QuestionAnalytics questions={questions} responses={responses} sessions={completedSessions} />
+          <Suspense fallback={<LoadingSpinner />}>
+            <QuestionAnalytics questions={questions} responses={responses} sessions={completedSessions} />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="responses" className="space-y-6">
-          <ResponseList sessions={completedSessions} responses={responses} questions={questions} />
+          <Suspense fallback={<LoadingSpinner />}>
+            <ResponseList sessions={completedSessions} responses={responses} questions={questions} />
+          </Suspense>
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-6">
-          <AIInsights survey={survey} questions={questions} responses={responses} sessions={completedSessions} />
+          <Suspense fallback={<LoadingSpinner />}>
+            <AIInsights survey={survey} questions={questions} responses={responses} sessions={completedSessions} />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

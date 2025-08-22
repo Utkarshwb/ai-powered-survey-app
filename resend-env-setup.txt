@@ -1,0 +1,9 @@
+# Add these to your existing .env.local file
+
+# Resend API Configuration
+RESEND_API_KEY=your_resend_api_key_here
+
+# Email Configuration  
+FROM_EMAIL=noreply@your-domain.com
+SUPPORT_EMAIL=support@your-domain.com
+WEBSITE_URL=https://your-survey-app.com

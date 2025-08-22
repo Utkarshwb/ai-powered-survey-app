@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Brain, Plus, LogOut, Sun, Moon } from "lucide-react"
+import { Brain, Plus, LogOut, Sun, Moon, Mail } from "lucide-react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -47,6 +47,15 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             <span className="font-medium text-gray-900 dark:text-gray-100">FormWise</span>
           </div>
           <div className="flex items-center gap-3">
+            <ActionTooltip label="Send Feedback">
+              <Link href="/feedback">
+                <Button variant="ghost" size="sm" className="rounded-full px-4 py-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 text-gray-700 dark:text-gray-300 border border-blue-200 dark:border-blue-700/50 hover:border-blue-300 dark:hover:border-blue-600 transform hover:scale-105 transition-all duration-300">
+                  <Mail className="h-4 w-4 mr-1" />
+                  Feedback
+                </Button>
+              </Link>
+            </ActionTooltip>
+            
             <ActionTooltip label="Create New Survey">
               <Link href="/surveys/new">
                 <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-blue-500/30">

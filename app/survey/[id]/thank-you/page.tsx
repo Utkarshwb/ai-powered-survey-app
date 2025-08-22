@@ -22,9 +22,15 @@ export default function ThankYouPage() {
               <CardDescription>Your response has been successfully submitted.</CardDescription>
             </CardHeader>
             <CardContent className="text-center">
-              <p className="text-sm text-gray-600 mb-6">
+              <p className="text-sm text-gray-600 mb-4">
                 We appreciate you taking the time to complete this survey. Your feedback is valuable to us.
               </p>
+              <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg mb-6">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  📧 <strong>Did you provide your email?</strong><br />
+                  If so, check your inbox for personalized insights and analysis based on your responses!
+                </p>
+              </div>
               <Link href="/">
                 <Button className="w-full">Create Your Own Survey</Button>
               </Link>

@@ -72,6 +72,11 @@ export default function HomePage() {
               <span className="font-medium text-gray-900 dark:text-gray-100">FormWise</span>
             </div>
             <div className="flex items-center gap-3">
+              <Link href="/feedback">
+                <Button variant="outline" size="sm" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border-blue-200 dark:border-blue-700 hover:border-blue-300 dark:hover:border-blue-600 rounded-full">
+                  💬 Feedback
+                </Button>
+              </Link>
               <Link href="/auth/login">
                 <Button variant="ghost" size="sm" className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100/80 dark:hover:bg-gray-700/80 rounded-full border border-transparent hover:border-gray-300 dark:hover:border-gray-600">
                   Sign In

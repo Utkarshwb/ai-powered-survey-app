@@ -3,10 +3,11 @@ import { createClient } from "@/lib/supabase/server"
 import { SurveyBuilder } from "@/components/survey-builder/survey-builder"
 
 interface EditSurveyPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function EditSurveyPage({ params }: EditSurveyPageProps) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.getUser()
@@ -18,7 +19,7 @@ export default async function EditSurveyPage({ params }: EditSurveyPageProps) {
   const { data: survey } = await supabase
     .from("surveys")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", data.user.id)
     .single()
 
@@ -30,7 +31,7 @@ export default async function EditSurveyPage({ params }: EditSurveyPageProps) {
   const { data: questions } = await supabase
     .from("questions")
     .select("*")
-    .eq("survey_id", params.id)
+    .eq("survey_id", id)
     .order("order_index")
 
   return (
@@ -67,7 +68,7 @@ export default async function EditSurveyPage({ params }: EditSurveyPageProps) {
       <div className="relative z-10">
         <SurveyBuilder
           userId={data.user.id}
-          surveyId={params.id}
+          surveyId={id}
           initialSurvey={survey}
           initialQuestions={questions || []}
         />

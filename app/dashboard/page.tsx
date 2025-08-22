@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { SurveyList } from "@/components/dashboard/survey-list"
 import { DashboardStats } from "@/components/dashboard/dashboard-stats"
+import Link from "next/link"
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -51,6 +52,18 @@ export default async function DashboardPage() {
             <SurveyList userId={data.user.id} />
           </div>
         </main>
+        
+        {/* Floating Feedback Button */}
+        <Link href="/feedback">
+          <div className="fixed bottom-6 right-6 z-50">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-full p-4 shadow-xl hover:shadow-2xl transform hover:scale-110 transition-all duration-300 cursor-pointer group">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">💬</span>
+                <span className="hidden group-hover:block text-sm font-medium">Feedback</span>
+              </div>
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   )

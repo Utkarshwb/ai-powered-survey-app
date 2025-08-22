@@ -3,10 +3,11 @@ import { createClient } from "@/lib/supabase/server"
 import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard"
 
 interface AnalyticsPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function AnalyticsPage({ params }: AnalyticsPageProps) {
+  const { id } = await params
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.getUser()
@@ -18,7 +19,7 @@ export default async function AnalyticsPage({ params }: AnalyticsPageProps) {
   const { data: survey } = await supabase
     .from("surveys")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", data.user.id)
     .single()
 
@@ -30,14 +31,14 @@ export default async function AnalyticsPage({ params }: AnalyticsPageProps) {
   const { data: questions } = await supabase
     .from("questions")
     .select("*")
-    .eq("survey_id", params.id)
+    .eq("survey_id", id)
     .order("order_index")
 
   // Fetch survey sessions
   const { data: sessions } = await supabase
     .from("survey_sessions")
     .select("*")
-    .eq("survey_id", params.id)
+    .eq("survey_id", id)
     .order("started_at", { ascending: false })
 
   // Fetch responses
@@ -47,7 +48,7 @@ export default async function AnalyticsPage({ params }: AnalyticsPageProps) {
       *,
       survey_sessions!inner(survey_id)
     `)
-    .eq("survey_sessions.survey_id", params.id)
+    .eq("survey_sessions.survey_id", id)
 
   return (
     <div className="min-h-screen w-full bg-white dark:bg-black relative">

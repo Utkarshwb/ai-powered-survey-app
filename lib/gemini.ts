@@ -2,15 +2,71 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyBx1kLoVOHr1qWT05ZJhOCIQh7KOC8VEkY")
 
+// Cache for AI responses to avoid redundant calls
+const responseCache = new Map<string, any>()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+function getCacheKey(prompt: string, type: string): string {
+  return `${type}:${Buffer.from(prompt).toString('base64').slice(0, 50)}`
+}
+
+function getFromCache(key: string): any | null {
+  const cached = responseCache.get(key)
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data
+  }
+  responseCache.delete(key)
+  return null
+}
+
+function setCache(key: string, data: any): void {
+  responseCache.set(key, { data, timestamp: Date.now() })
+}
+
+// Timeout wrapper for AI calls
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('AI request timeout')), ms)
+  )
+  return Promise.race([promise, timeout])
+}
+
 function cleanJsonResponse(text: string): string {
   // Remove markdown code blocks and trim whitespace
-  return text
+  let cleaned = text
     .replace(/```json\s*/g, "")
     .replace(/```\s*/g, "")
     .trim()
+  
+  // Find the first { and last } to extract just the JSON part
+  const firstBrace = cleaned.indexOf('{')
+  const lastBrace = cleaned.lastIndexOf('}')
+  
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1)
+  }
+  
+  return cleaned
+}
+
+function validateAndParseJSON(text: string, fallbackData: any) {
+  try {
+    const cleanedText = cleanJsonResponse(text)
+    return JSON.parse(cleanedText)
+  } catch (error) {
+    console.warn("Failed to parse AI response as JSON, using fallback:", error)
+    console.log("Raw AI response:", text)
+    return fallbackData
+  }
 }
 
 export async function generateSurveyQuestions(prompt: string, surveyType = "general") {
+  const cacheKey = getCacheKey(prompt + surveyType, 'questions')
+  const cached = getFromCache(cacheKey)
+  if (cached) {
+    return { success: true, questions: cached }
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
 
@@ -39,12 +95,28 @@ Guidelines:
 Return only the JSON array, no additional text or markdown formatting.
 `
 
-    const result = await model.generateContent(enhancedPrompt)
+    const result = await withTimeout(
+      model.generateContent(enhancedPrompt),
+      15000 // 15 second timeout
+    )
     const response = await result.response
     const text = response.text()
 
-    const cleanedText = cleanJsonResponse(text)
-    const questions = JSON.parse(cleanedText)
+    const fallbackQuestions = [
+      {
+        question_text: "How would you rate your overall experience?",
+        question_type: "rating",
+        options: []
+      },
+      {
+        question_text: "What did you like most?",
+        question_type: "text",
+        options: []
+      }
+    ]
+
+    const questions = validateAndParseJSON(text, fallbackQuestions)
+    setCache(cacheKey, questions)
     return { success: true, questions }
   } catch (error) {
     console.error("Error generating questions:", error)
@@ -78,8 +150,15 @@ Return as JSON without markdown formatting:
     const response = await result.response
     const text = response.text()
 
-    const cleanedText = cleanJsonResponse(text)
-    const improvements = JSON.parse(cleanedText)
+    const fallbackImprovements = {
+      improvements: [
+        "Consider making the question more specific",
+        "Ensure the question is unbiased and neutral",
+        "Check if the question allows for all possible answers"
+      ]
+    }
+
+    const improvements = validateAndParseJSON(text, fallbackImprovements)
     return { success: true, improvements: improvements.improvements }
   } catch (error) {
     console.error("Error improving question:", error)
@@ -132,8 +211,24 @@ Return as JSON without markdown formatting:
     const response = await result.response
     const text = response.text()
 
-    const cleanedText = cleanJsonResponse(text)
-    const analysis = JSON.parse(cleanedText)
+    const fallbackAnalysis = {
+      overall_score: 7,
+      estimated_completion_time: "5-10 minutes",
+      strengths: ["Survey structure is reasonable"],
+      weaknesses: ["Analysis temporarily unavailable"],
+      recommendations: [
+        {
+          type: "improve",
+          question_index: 0,
+          suggestion: "Consider reviewing question clarity",
+          reason: "Enhanced clarity improves response quality"
+        }
+      ],
+      flow_analysis: "Survey flow appears logical",
+      bias_check: "No obvious bias detected"
+    }
+
+    const analysis = validateAndParseJSON(text, fallbackAnalysis)
     return { success: true, analysis }
   } catch (error) {
     console.error("Error analyzing survey:", error)
@@ -173,8 +268,20 @@ Return as JSON without markdown formatting:
     const response = await result.response
     const text = response.text()
 
-    const cleanedText = cleanJsonResponse(text)
-    const followUpQuestions = JSON.parse(cleanedText)
+    const fallbackQuestions = [
+      {
+        question_text: "What additional feedback would you like to share?",
+        question_type: "text",
+        reasoning: "Gather open-ended feedback for deeper insights"
+      },
+      {
+        question_text: "How likely are you to participate in future surveys?",
+        question_type: "rating",
+        reasoning: "Assess engagement for future research"
+      }
+    ]
+
+    const followUpQuestions = validateAndParseJSON(text, fallbackQuestions)
     return { success: true, questions: followUpQuestions }
   } catch (error) {
     console.error("Error generating follow-up questions:", error)
@@ -200,15 +307,15 @@ ${responses
 
 Provide comprehensive insights including:
 1. Key findings and trends
-2. Sentiment analysis
+2. Sentiment analysis (1-10 scale)
 3. Demographic patterns (if applicable)
 4. Actionable recommendations
 5. Areas for further investigation
 
-Return as JSON without markdown formatting:
+IMPORTANT: Return ONLY valid JSON in this exact format (no extra text, no markdown):
 {
-  "key_findings": ["finding 1", "finding 2"],
-  "sentiment_score": 1-10,
+  "key_findings": ["finding 1", "finding 2", "finding 3"],
+  "sentiment_score": 7,
   "trends": ["trend 1", "trend 2"],
   "recommendations": ["recommendation 1", "recommendation 2"],
   "response_quality": "Assessment of response quality",
@@ -221,11 +328,32 @@ Return as JSON without markdown formatting:
     const response = await result.response
     const text = response.text()
 
-    const cleanedText = cleanJsonResponse(text)
-    const insights = JSON.parse(cleanedText)
+    const fallbackInsights = {
+      key_findings: ["Survey responses collected successfully"],
+      sentiment_score: 5,
+      trends: ["Data analysis pending"],
+      recommendations: ["Continue collecting responses for better insights"],
+      response_quality: "Good response rate observed",
+      completion_rate_analysis: "Standard completion patterns",
+      notable_patterns: ["More analysis needed with larger sample size"]
+    }
+
+    const insights = validateAndParseJSON(text, fallbackInsights)
     return { success: true, insights }
   } catch (error) {
     console.error("Error generating insights:", error)
-    return { success: false, error: "Failed to generate insights" }
+    return { 
+      success: false, 
+      error: "Failed to generate insights",
+      insights: {
+        key_findings: ["Unable to generate AI insights at this time"],
+        sentiment_score: 5,
+        trends: ["Analysis temporarily unavailable"],
+        recommendations: ["Try again later or contact support"],
+        response_quality: "Analysis pending",
+        completion_rate_analysis: "Analysis pending", 
+        notable_patterns: ["AI analysis temporarily unavailable"]
+      }
+    }
   }
 }

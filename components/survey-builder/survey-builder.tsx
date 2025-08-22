@@ -283,6 +283,38 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
           </CardContent>
         </Card>
 
+        {/* Email Capture Suggestion */}
+        {questions.length > 0 && !questions.some(q => q.question_type === 'email' || q.question_text.toLowerCase().includes('email')) && (
+          <Alert className="border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20">
+            <AlertDescription className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-blue-700 dark:text-blue-300">
+                  📧 <strong>Tip:</strong> Add an email question to send personalized AI insights to respondents!
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const emailQuestion: Question = {
+                    id: `temp-${Date.now()}`,
+                    survey_id: surveyId || "",
+                    question_text: "What's your email address? (Optional - we'll send you personalized insights!)",
+                    question_type: "email",
+                    is_required: false,
+                    order_index: 0, // Make it first question
+                    created_at: new Date().toISOString(),
+                  }
+                  setQuestions([emailQuestion, ...questions.map(q => ({ ...q, order_index: q.order_index + 1 }))])
+                }}
+                className="text-xs border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+              >
+                Add Email Question
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {showAIGenerator && !needsDbSetup && (
           <AIQuestionGenerator onQuestionsGenerated={handleAIQuestions} onClose={() => setShowAIGenerator(false)} />
         )}
