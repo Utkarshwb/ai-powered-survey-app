@@ -189,3 +189,5 @@ export function QuestionAnalytics({ questions, responses, sessions }: QuestionAn
     </div>
   )
 }
+
+export default QuestionAnalytics

@@ -128,3 +128,5 @@ export function ExportMenu({ surveyId, surveyTitle }: ExportMenuProps) {
     </DropdownMenu>
   )
 }
+
+export default ExportMenu

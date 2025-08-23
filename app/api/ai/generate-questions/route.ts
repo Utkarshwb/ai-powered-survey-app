@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ questions: result.questions })
+    return NextResponse.json({ success: true, questions: result.questions })
   } catch (error) {
     console.error("Error in generate-questions API:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

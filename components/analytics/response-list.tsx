@@ -185,3 +185,5 @@ export function ResponseList({ sessions, responses, questions }: ResponseListPro
     </div>
   )
 }
+
+export default ResponseList

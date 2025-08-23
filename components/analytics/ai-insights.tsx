@@ -262,3 +262,5 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
     </div>
   )
 }
+
+export default AIInsights
