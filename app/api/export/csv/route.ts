@@ -54,21 +54,10 @@ export async function POST(request: NextRequest) {
       `)
       .eq("survey_sessions.survey_id", surveyId)
 
-    // Debug logging for production issues
-    console.log("Production Debug - Survey ID:", surveyId)
-    console.log("Questions found:", questions?.length || 0, questionsError ? "Error: " + questionsError.message : "")
-    console.log("Sessions found:", sessions?.length || 0, sessionsError ? "Error: " + sessionsError.message : "")
-    console.log("Responses found:", responses?.length || 0, responsesError ? "Error: " + responsesError.message : "")
-    
-    if (questionsError) console.error("Questions error:", questionsError)
-    if (sessionsError) console.error("Sessions error:", sessionsError)
-    if (responsesError) console.error("Responses error:", responsesError)
-
     // Try alternative response query if the join fails
     let alternativeResponses = null
     if (!responses || responses.length === 0) {
-      console.log("Trying alternative response query...")
-      const { data: altResponses, error: altError } = await supabase
+      const { data: altResponses } = await supabase
         .from("responses")
         .select("*")
       
@@ -76,16 +65,10 @@ export async function POST(request: NextRequest) {
         // Filter responses manually by matching session IDs
         const sessionIds = sessions?.map(s => s.id) || []
         alternativeResponses = altResponses.filter(r => sessionIds.includes(r.session_id))
-        console.log("Alternative responses found:", alternativeResponses.length)
       }
       
-      if (altError) {
-        console.error("Alternative response query error:", altError)
-      }
-      
-      // Last resort: try to get responses for any session in this survey
+      // Last resort: try to get responses by question IDs
       if (!alternativeResponses || alternativeResponses.length === 0) {
-        console.log("Trying to find responses by question survey_id...")
         const questionIds = questions?.map(q => q.id) || []
         if (questionIds.length > 0) {
           const { data: responsesByQuestions } = await supabase
@@ -94,15 +77,13 @@ export async function POST(request: NextRequest) {
             .in("question_id", questionIds)
           
           alternativeResponses = responsesByQuestions || []
-          console.log("Responses by questions found:", alternativeResponses.length)
         }
       }
     }
 
     const finalResponses = responses?.length ? responses : alternativeResponses
     
-    console.log("Final responses to use:", finalResponses?.length || 0)
-    
+    // Group responses by session_id to handle cases where sessions might be missing
     const responsesBySession = finalResponses?.reduce((acc: any, response: any) => {
       const sessionId = response.session_id
       if (!acc[sessionId]) {
@@ -137,8 +118,6 @@ export async function POST(request: NextRequest) {
       const sessionResponses = (sessions && sessions.length > 0)
         ? finalResponses?.filter((r: any) => r.session_id === session.id) || []
         : responsesBySession[session.id] || []
-      
-      console.log(`Processing session ${session.id.slice(-8)}: ${sessionResponses.length} responses`)
       
       const completionTime =
         session.started_at && session.completed_at
