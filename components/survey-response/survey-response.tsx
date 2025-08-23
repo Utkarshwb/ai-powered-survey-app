@@ -1,12 +1,15 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Brain, ArrowLeft, ArrowRight, Send } from "lucide-react"
+import { Brain, ArrowLeft, ArrowRight, Send, Save, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { QuestionRenderer } from "./question-renderer"
+import { ProgressHeader } from "@/components/ui/progress-indicators"
+import { useSwipeGesture, useKeyboardShortcuts, useIsMobile } from "@/hooks/use-gestures"
+import { MobileFloatingActionButton } from "@/components/ui/mobile-components"
 import type { Survey, Question } from "@/lib/types"
 
 interface SurveyResponseProps {
@@ -19,8 +22,109 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
   const [responses, setResponses] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
+  const [questionStartTime, setQuestionStartTime] = useState(Date.now())
 
   const router = useRouter()
+  const isMobile = useIsMobile()
+
+  // Swipe gesture setup
+  const swipeGesture = useSwipeGesture({
+    onSwipeLeft: () => {
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1)
+        setQuestionStartTime(Date.now())
+      }
+    },
+    onSwipeRight: () => {
+      if (currentQuestionIndex > 0) {
+        setCurrentQuestionIndex(currentQuestionIndex - 1)
+        setQuestionStartTime(Date.now())
+      }
+    },
+    threshold: 75
+  })
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    { key: 'ArrowLeft', callback: () => {
+        if (currentQuestionIndex > 0) {
+          setCurrentQuestionIndex(currentQuestionIndex - 1)
+          setQuestionStartTime(Date.now())
+        }
+      }
+    },
+    { key: 'ArrowRight', callback: () => {
+        if (currentQuestionIndex < questions.length - 1) {
+          setCurrentQuestionIndex(currentQuestionIndex + 1)
+          setQuestionStartTime(Date.now())
+        }
+      }
+    },
+    { key: 'Enter', callback: () => {
+        if (currentQuestionIndex === questions.length - 1) {
+          handleSubmit()
+        } else if (currentQuestionIndex < questions.length - 1) {
+          setCurrentQuestionIndex(currentQuestionIndex + 1)
+          setQuestionStartTime(Date.now())
+        }
+      }
+    }
+  ])
+
+  // Load saved draft on component mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem(`draft_${survey.id}`)
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft)
+        // Only restore if saved less than 24 hours ago
+        if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
+          setResponses(draft.responses || {})
+          setCurrentQuestionIndex(draft.currentQuestionIndex || 0)
+          setLastSaved(new Date(draft.timestamp))
+        }
+      } catch (error) {
+        console.error('Error loading draft:', error)
+      }
+    }
+  }, [survey.id])
+
+  // Auto-save every 30 seconds
+  useEffect(() => {
+    if (Object.keys(responses).length === 0) return
+    
+    const interval = setInterval(() => {
+      const draft = {
+        responses,
+        currentQuestionIndex,
+        timestamp: Date.now()
+      }
+      localStorage.setItem(`draft_${survey.id}`, JSON.stringify(draft))
+      setLastSaved(new Date())
+    }, 30000)
+
+    return () => clearInterval(interval)
+  }, [responses, currentQuestionIndex, survey.id])
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
+        return // Don't interfere with form inputs
+      }
+      
+      if (e.key === 'ArrowRight' && !isLastQuestion && canProceed()) {
+        handleNext()
+      }
+      if (e.key === 'ArrowLeft' && !isFirstQuestion) {
+        handlePrevious()
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [currentQuestionIndex, responses])
 
   const currentQuestion = questions && questions.length > 0 ? questions[currentQuestionIndex] : null
   const progress = questions && questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0
@@ -34,7 +138,7 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
     }))
   }
 
-  const canProceed = () => {
+  const canProceed = useCallback(() => {
     if (!currentQuestion) return false
 
     const response = responses[currentQuestion.id]
@@ -47,18 +151,29 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
     }
 
     return true
-  }
+  }, [currentQuestion, responses])
 
   const handleNext = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
+      setQuestionStartTime(Date.now())
     }
   }
 
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1)
+      setQuestionStartTime(Date.now())
     }
+  }
+
+  const timeSpentOnQuestion = useMemo(() => {
+    return Date.now() - questionStartTime
+  }, [questionStartTime])
+
+  // Clear draft when survey is submitted
+  const clearDraft = () => {
+    localStorage.removeItem(`draft_${survey.id}`)
   }
 
   const handleSubmit = async () => {
@@ -78,7 +193,7 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
       const sessionData = await sessionResponse.json()
       const newSessionId = sessionData.sessionId
 
-      // Submit all responses
+      // Submit all responses with time tracking
       const responsePromises = questions.map((question) => {
         const response = responses[question.id]
         if (response === undefined || response === null || response === "") return null
@@ -91,6 +206,7 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
             questionId: question.id,
             response: response,
             questionType: question.question_type,
+            timeSpent: timeSpentOnQuestion // Track time spent
           }),
         })
       })
@@ -103,6 +219,9 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: newSessionId }),
       })
+
+      // Clear draft on successful submission
+      clearDraft()
 
       // Check if user provided email and send feedback
       const emailResponse = findEmailInResponses()
@@ -139,6 +258,7 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
       router.push(`/survey/${survey.id}/thank-you?sessionId=${newSessionId}`)
     } catch (error) {
       console.error("Error submitting survey:", error)
+      alert('Failed to submit survey. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -205,25 +325,36 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       {/* Header */}
+            {/* Header */}
       <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Brain className="h-6 w-6 text-blue-600" />
-          <span className="text-lg font-semibold text-gray-700">Survey</span>
+        <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full text-sm font-medium mb-6">
+          <Brain className="h-4 w-4" />
+          AI-Powered Survey
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{survey.title}</h1>
-        {survey.description && <p className="text-gray-600 max-w-lg mx-auto">{survey.description}</p>}
       </div>
 
       {/* Progress */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-          <span>
-            Question {currentQuestionIndex + 1} of {questions.length}
-          </span>
-          <span>{Math.round(progress)}% Complete</span>
+      <ProgressHeader 
+        current={currentQuestionIndex + 1}
+        total={questions.length}
+        estimatedTimeMinutes={Math.ceil(questions.length * 1.5)} // Estimate 1.5 min per question
+        title={survey.title}
+      />
+
+      {/* Survey Description */}
+      {survey.description && (
+        <div className="text-center mb-8">
+          <p className="text-gray-600 dark:text-gray-400 max-w-lg mx-auto">{survey.description}</p>
         </div>
-        <Progress value={progress} className="h-2" />
-      </div>
+      )}
+
+      {/* Auto-save Status */}
+      {lastSaved && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-md border border-green-200">
+          <Save className="h-4 w-4" />
+          <span>Last saved: {lastSaved.toLocaleTimeString()}</span>
+        </div>
+      )}
 
       {/* Question Card */}
       <Card className="mb-8">
@@ -256,10 +387,18 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
           Previous
         </Button>
 
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Clock className="h-4 w-4" />
+          <span>Use ← → keys to navigate</span>
+        </div>
+
         {isLastQuestion ? (
           <Button onClick={handleSubmit} disabled={!canProceed() || isSubmitting} className="flex items-center gap-2">
             {isSubmitting ? (
-              "Submitting..."
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                Submitting...
+              </>
             ) : (
               <>
                 <Send className="h-4 w-4" />
@@ -277,7 +416,8 @@ export function SurveyResponse({ survey, questions }: SurveyResponseProps) {
 
       {/* Help Text */}
       <div className="text-center mt-8 text-sm text-gray-500">
-        <p>Your responses are secure and will be used only for the stated purpose of this survey.</p>
+        <p>Your responses are secure and automatically saved every 30 seconds.</p>
+        {currentQuestion.is_required && <p>* Required fields must be completed to proceed.</p>}
       </div>
     </div>
   )

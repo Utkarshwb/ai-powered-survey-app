@@ -9,12 +9,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { createClient } from "@/lib/supabase/client"
-import { Brain, Save, Eye, ArrowLeft, Plus, Sparkles, AlertTriangle } from "lucide-react"
+import { Brain, Save, Eye, ArrowLeft, Plus, Sparkles, AlertTriangle, FileText, Move } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { QuestionBuilder } from "./question-builder"
 import { AIQuestionGenerator } from "./ai-question-generator"
 import { SurveyAnalyzer } from "./survey-analyzer"
+import { TemplateSelect } from "./template-select"
+import { DragDropList, useDragDrop, createDragDropItem } from "@/components/ui/drag-drop"
+import { CommandPalette, useCommandPalette, createSurveyActions } from "@/components/ui/command-palette"
+import { BulkOperations, useBulkSelection, SelectableItem } from "@/components/ui/bulk-operations"
+import { useKeyboardShortcuts } from "@/hooks/use-gestures"
+import { getTemplateById, type SurveyTemplate } from "@/lib/survey-templates"
 import type { Survey, Question } from "@/lib/types"
 
 interface SurveyBuilderProps {
@@ -25,9 +31,9 @@ interface SurveyBuilderProps {
 }
 
 export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestions = [] }: SurveyBuilderProps) {
+  const [showTemplateSelect, setShowTemplateSelect] = useState(!surveyId && !initialSurvey && initialQuestions.length === 0)
   const [title, setTitle] = useState(initialSurvey?.title || "")
   const [description, setDescription] = useState(initialSurvey?.description || "")
-  const [questions, setQuestions] = useState<Question[]>(initialQuestions)
   const [isPublished, setIsPublished] = useState(initialSurvey?.is_published || false)
   const [isSaving, setIsSaving] = useState(false)
   const [showAIGenerator, setShowAIGenerator] = useState(false)
@@ -36,6 +42,54 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
 
   const router = useRouter()
   const supabase = createClient()
+
+  // Command palette
+  const commandPalette = useCommandPalette()
+
+  // Use drag & drop hook for questions
+  const {
+    items: questions,
+    setItems: setQuestions,
+    reorderItems,
+    addItem: addQuestionToList,
+    removeItem: removeQuestionFromList,
+    updateItem: updateQuestionInList
+  } = useDragDrop<Question>(initialQuestions)
+
+  // Bulk selection for questions
+  const bulkSelection = useBulkSelection(questions)
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts([
+    { key: 'n', ctrlKey: true, callback: () => handleAddQuestion() },
+    { key: 's', ctrlKey: true, callback: () => handleSave() },
+    { key: 'p', ctrlKey: true, callback: () => router.push(`/surveys/${surveyId}`) },
+    { key: 'k', ctrlKey: true, callback: () => commandPalette.open() }
+  ])
+
+  const handleTemplateSelect = (template: SurveyTemplate) => {
+    setTitle(template.name)
+    setDescription(template.description)
+    
+    // Convert template questions to Question format
+    const templateQuestions: Question[] = template.questions.map((tq, index) => ({
+      id: `temp_${Date.now()}_${index}`, // Temporary ID
+      survey_id: surveyId || '',
+      question_text: tq.question_text,
+      question_type: tq.question_type,
+      options: tq.options || undefined,
+      is_required: tq.is_required,
+      order_index: tq.order_index,
+      created_at: new Date().toISOString()
+    }))
+    
+    setQuestions(templateQuestions)
+    setShowTemplateSelect(false)
+  }
+
+  const handleCreateFromScratch = () => {
+    setShowTemplateSelect(false)
+  }
 
   const handleSave = async () => {
     if (!title.trim()) return
@@ -142,7 +196,7 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
     }
   }
 
-  const addQuestion = () => {
+  const handleAddQuestion = () => {
     const newQuestion: Question = {
       id: `temp-${Date.now()}`,
       survey_id: surveyId || "",
@@ -152,17 +206,30 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
       order_index: questions.length,
       created_at: new Date().toISOString(),
     }
-    setQuestions([...questions, newQuestion])
+    addQuestionToList(newQuestion)
   }
 
+  const handleUpdateQuestion = (questionId: string, updatedQuestion: Partial<Question>) => {
+    updateQuestionInList(questionId, updatedQuestion)
+  }
+
+  const handleDeleteQuestion = (questionId: string) => {
+    removeQuestionFromList(questionId)
+  }
+
+  // Legacy function for backward compatibility
+  const addQuestion = handleAddQuestion
   const updateQuestion = (index: number, updatedQuestion: Partial<Question>) => {
-    const newQuestions = [...questions]
-    newQuestions[index] = { ...newQuestions[index], ...updatedQuestion }
-    setQuestions(newQuestions)
+    const question = questions[index]
+    if (question) {
+      handleUpdateQuestion(question.id, updatedQuestion)
+    }
   }
-
   const deleteQuestion = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index))
+    const question = questions[index]
+    if (question) {
+      handleDeleteQuestion(question.id)
+    }
   }
 
   const handleAIQuestions = (aiQuestions: Partial<Question>[]) => {
@@ -186,211 +253,329 @@ export function SurveyBuilder({ userId, surveyId, initialSurvey, initialQuestion
     setDbError(null)
   }
 
+  // Bulk operations handlers
+  const handleBulkDelete = (ids: string[]) => {
+    ids.forEach(id => removeQuestionFromList(id))
+    bulkSelection.selectNone()
+  }
+
+  const handleBulkDuplicate = (ids: string[]) => {
+    const itemsToDuplicate = questions.filter(q => ids.includes(q.id))
+    itemsToDuplicate.forEach(question => {
+      const duplicatedQuestion: Question = {
+        ...question,
+        id: `temp-${Date.now()}-${Math.random()}`,
+        question_text: `${question.question_text} (Copy)`,
+        order_index: questions.length
+      }
+      addQuestionToList(duplicatedQuestion)
+    })
+    bulkSelection.selectNone()
+  }
+
+  // Command palette actions (defined after handlers)
+  const commandActions = createSurveyActions({
+    onAddQuestion: handleAddQuestion,
+    onSave: handleSave,
+    onPreview: () => router.push(`/survey/${surveyId}`),
+    onPublish: handlePublish,
+    onAIGenerate: () => setShowAIGenerator(true),
+    onSettings: () => {
+      // TODO: Implement settings modal
+      alert('Settings coming soon!')
+    },
+    onAnalytics: () => {
+      // TODO: Navigate to analytics
+      router.push(`/surveys/${surveyId}/analytics`)
+    },
+    onExport: () => {
+      // TODO: Implement export
+      alert('Export coming soon!')
+    },
+    onDuplicate: () => {
+      // TODO: Implement duplicate
+      alert('Duplicate coming soon!')
+    },
+    onDelete: () => {
+      if (confirm('Are you sure you want to delete this survey?')) {
+        // TODO: Implement delete
+        alert('Delete coming soon!')
+      }
+    }
+  })
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Brain className="h-6 w-6 text-blue-600" />
-            <h1 className="text-2xl font-bold">{surveyId ? "Edit Survey" : "Create New Survey"}</h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isPublished && <Badge variant="default">Published</Badge>}
-          <Button variant="outline" onClick={handleSave} disabled={isSaving || needsDbSetup}>
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? "Saving..." : "Save"}
-          </Button>
-          {surveyId && (
-            <Button onClick={handlePublish} disabled={needsDbSetup}>
-              {isPublished ? "Unpublish" : "Publish"}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {needsDbSetup && (
-        <Alert className="mb-6 border-amber-200 bg-amber-50">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            <div className="space-y-3">
-              <p className="font-medium text-lg">⚠️ Database Setup Required</p>
-              <p>The database tables don't exist yet. You need to run the SQL scripts to create them:</p>
-              <div className="bg-white p-3 rounded border text-sm font-mono">
-                <p className="font-semibold mb-2">Run these scripts in order:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>scripts/001_create_surveys_table.sql</li>
-                  <li>scripts/002_create_questions_table.sql</li>
-                  <li>scripts/003_create_responses_table.sql</li>
-                  <li>scripts/004_create_ai_suggestions_table.sql</li>
-                  <li>scripts/005_create_survey_sessions_table.sql</li>
-                </ol>
-              </div>
-              <p className="text-sm">
-                💡 <strong>Tip:</strong> Look for the "Run Script" buttons in the v0 interface to execute these scripts.
-              </p>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {dbError && !needsDbSetup && (
-        <Alert className="mb-6 border-red-200 bg-red-50">
-          <AlertTriangle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
-            <p className="font-medium">Error</p>
-            <p>{dbError}</p>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-6">
-        <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-white">Survey Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="title" className="text-gray-800 dark:text-gray-200">Survey Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={needsDbSetup ? "Run database scripts first..." : "Enter survey title..."}
-                disabled={needsDbSetup}
-                className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description" className="text-gray-800 dark:text-gray-200">Description (Optional)</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={needsDbSetup ? "Run database scripts first..." : "Describe what this survey is about..."}
-                rows={3}
-                disabled={needsDbSetup}
-                className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Email Capture Suggestion */}
-        {questions.length > 0 && !questions.some(q => q.question_type === 'email' || q.question_text.toLowerCase().includes('email')) && (
-          <Alert className="border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20">
-            <AlertDescription className="flex items-center justify-between">
+      {showTemplateSelect ? (
+        <TemplateSelect
+          onSelectTemplate={handleTemplateSelect}
+          onCreateFromScratch={handleCreateFromScratch}
+        />
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
               <div className="flex items-center gap-2">
-                <span className="text-blue-700 dark:text-blue-300">
-                  📧 <strong>Tip:</strong> Add an email question to send personalized AI insights to respondents!
-                </span>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  const emailQuestion: Question = {
-                    id: `temp-${Date.now()}`,
-                    survey_id: surveyId || "",
-                    question_text: "What's your email address? (Optional - we'll send you personalized insights!)",
-                    question_type: "email",
-                    is_required: false,
-                    order_index: 0, // Make it first question
-                    created_at: new Date().toISOString(),
-                  }
-                  setQuestions([emailQuestion, ...questions.map(q => ({ ...q, order_index: q.order_index + 1 }))])
-                }}
-                className="text-xs border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
-              >
-                Add Email Question
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {showAIGenerator && !needsDbSetup && (
-          <AIQuestionGenerator onQuestionsGenerated={handleAIQuestions} onClose={() => setShowAIGenerator(false)} />
-        )}
-
-        <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-gray-900 dark:text-white">Questions</CardTitle>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAIGenerator(true)}
-                  className="flex items-center gap-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  disabled={needsDbSetup}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  AI Generate
-                </Button>
-                <Button onClick={addQuestion} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl" disabled={needsDbSetup}>
-                  <Plus className="h-4 w-4" />
-                  Add Question
-                </Button>
+                <Brain className="h-6 w-6 text-blue-600" />
+                <h1 className="text-2xl font-bold">{surveyId ? "Edit Survey" : "Create New Survey"}</h1>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {needsDbSetup ? (
-              <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-                <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-500 dark:text-amber-400" />
-                <p className="text-lg font-medium text-gray-900 dark:text-white">Database Setup Required</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Please run the SQL scripts above to enable survey creation.</p>
-              </div>
-            ) : questions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <p>No questions yet. Add your first question or use AI to generate them.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {questions.map((question, index) => (
-                  <QuestionBuilder
-                    key={question.id}
-                    question={question}
-                    index={index}
-                    onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
-                    onDelete={() => deleteQuestion(index)}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
-        {surveyId && questions.length > 0 && <SurveyAnalyzer surveyId={surveyId} />}
+            <div className="flex items-center gap-2">
+              {isPublished && <Badge variant="default">Published</Badge>}
+              <Button variant="outline" onClick={handleSave} disabled={isSaving || needsDbSetup}>
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+              {surveyId && (
+                <Button onClick={handlePublish} disabled={needsDbSetup}>
+                  {isPublished ? "Unpublish" : "Publish"}
+                </Button>
+              )}
+              {!surveyId && questions.length === 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowTemplateSelect(true)}
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Browse Templates
+                </Button>
+              )}
+            </div>
+          </div>
 
-        {surveyId && isPublished && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Share Your Survey</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <Label>Survey Link</Label>
-                  <Input value={`${window.location.origin}/survey/${surveyId}`} readOnly className="bg-gray-50" />
+          {needsDbSetup && (
+            <Alert className="mb-6 border-amber-200 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <div className="space-y-3">
+                  <p className="font-medium text-lg">⚠️ Database Setup Required</p>
+                  <p>The database tables don't exist yet. You need to run the SQL scripts to create them:</p>
+                  <div className="bg-white p-3 rounded border text-sm font-mono">
+                    <p className="font-semibold mb-2">Run these scripts in order:</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>scripts/001_create_surveys_table.sql</li>
+                      <li>scripts/002_create_questions_table.sql</li>
+                      <li>scripts/003_create_responses_table.sql</li>
+                      <li>scripts/004_create_ai_suggestions_table.sql</li>
+                      <li>scripts/005_create_survey_sessions_table.sql</li>
+                    </ol>
+                  </div>
+                  <p className="text-sm">
+                    💡 <strong>Tip:</strong> Look for the "Run Script" buttons in the v0 interface to execute these scripts.
+                  </p>
                 </div>
-                <Link href={`/survey/${surveyId}`} target="_blank">
-                  <Button variant="outline">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {dbError && !needsDbSetup && (
+            <Alert className="mb-6 border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                <p className="font-medium">Error</p>
+                <p>{dbError}</p>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-6">
+            <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-gray-900 dark:text-white">Survey Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="title" className="text-gray-800 dark:text-gray-200">Survey Title</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={needsDbSetup ? "Run database scripts first..." : "Enter survey title..."}
+                    disabled={needsDbSetup}
+                    className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description" className="text-gray-800 dark:text-gray-200">Description (Optional)</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder={needsDbSetup ? "Run database scripts first..." : "Describe what this survey is about..."}
+                    rows={3}
+                    disabled={needsDbSetup}
+                    className="border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Email Capture Suggestion */}
+            {questions.length > 0 && !questions.some(q => q.question_type === 'email' || q.question_text.toLowerCase().includes('email')) && (
+              <Alert className="border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/20">
+                <AlertDescription className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-700 dark:text-blue-300">
+                      📧 <strong>Tip:</strong> Add an email question to send personalized AI insights to respondents!
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const emailQuestion: Question = {
+                        id: `temp-${Date.now()}`,
+                        survey_id: surveyId || "",
+                        question_text: "What's your email address? (Optional - we'll send you personalized insights!)",
+                        question_type: "email",
+                        is_required: false,
+                        order_index: 0,
+                        created_at: new Date().toISOString(),
+                      }
+                      setQuestions([emailQuestion, ...questions.map(q => ({ ...q, order_index: q.order_index + 1 }))])
+                    }}
+                    className="text-xs border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+                  >
+                    Add Email Question
                   </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {showAIGenerator && !needsDbSetup && (
+              <AIQuestionGenerator onQuestionsGenerated={handleAIQuestions} onClose={() => setShowAIGenerator(false)} />
+            )}
+
+            <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-gray-900 dark:text-white">Questions</CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowAIGenerator(true)}
+                      className="flex items-center gap-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      disabled={needsDbSetup}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AI Generate
+                    </Button>
+                    <Button onClick={addQuestion} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl" disabled={needsDbSetup}>
+                      <Plus className="h-4 w-4" />
+                      Add Question
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {needsDbSetup ? (
+                  <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+                    <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-500 dark:text-amber-400" />
+                    <p className="text-lg font-medium text-gray-900 dark:text-white">Database Setup Required</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Please run the SQL scripts above to enable survey creation.</p>
+                  </div>
+                ) : questions.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                    <p>No questions yet. Add your first question or use AI to generate them.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Move className="h-4 w-4" />
+                        <span>Drag questions to reorder • Ctrl+N to add • Ctrl+S to save • Ctrl+K for commands</span>
+                      </div>
+                      {questions.length > 1 && (
+                        <div className="text-xs text-gray-500">
+                          Hover questions to select multiple
+                        </div>
+                      )}
+                    </div>
+                    <DragDropList
+                      items={questions.map((question, index) => 
+                        createDragDropItem(
+                          question.id,
+                          <SelectableItem
+                            id={question.id}
+                            isSelected={bulkSelection.isSelected(question.id)}
+                            onToggleSelection={bulkSelection.toggleSelection}
+                          >
+                            <QuestionBuilder
+                              key={question.id}
+                              question={question}
+                              index={index}
+                              onUpdate={(updatedQuestion) => updateQuestion(index, updatedQuestion)}
+                              onDelete={() => deleteQuestion(index)}
+                            />
+                          </SelectableItem>
+                        )
+                      )}
+                      onReorder={(reorderedItems) => {
+                        const reorderedQuestions = reorderedItems.map((item) => {
+                          const question = questions.find(q => q.id === item.id)!
+                          return question
+                        })
+                        reorderItems(reorderedQuestions)
+                      }}
+                      showArrows={true}
+                      className="space-y-3"
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {surveyId && questions.length > 0 && <SurveyAnalyzer surveyId={surveyId} />}
+
+            {surveyId && isPublished && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Share Your Survey</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1">
+                      <Label>Survey Link</Label>
+                      <Input value={`${window.location.origin}/survey/${surveyId}`} readOnly className="bg-gray-50" />
+                    </div>
+                    <Link href={`/survey/${surveyId}`} target="_blank">
+                      <Button variant="outline">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </>
+      )}
+      
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={commandPalette.isOpen}
+        onClose={commandPalette.close}
+        actions={commandActions}
+      />
+
+      {/* Bulk Operations */}
+      <BulkOperations
+        selectedItems={bulkSelection.selectedIds}
+        totalItems={questions.length}
+        onSelectAll={bulkSelection.selectAll}
+        onSelectNone={bulkSelection.selectNone}
+        onDelete={handleBulkDelete}
+        onDuplicate={handleBulkDuplicate}
+      />
     </div>
   )
 }

@@ -15,14 +15,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { survey, questions, responses, sessions } = await request.json()
+    const { survey, questions, responses, sessions, hasResponses } = await request.json()
 
-    if (!survey || !questions || !responses) {
-      return NextResponse.json({ error: "Missing required data" }, { status: 400 })
+    if (!survey || !questions) {
+      return NextResponse.json({ error: "Missing required data (survey and questions)" }, { status: 400 })
     }
 
-    // Generate insights using AI
-    const result = await generateSurveyInsights(responses, questions)
+    // Generate insights using AI - pass responses array even if empty
+    const result = await generateSurveyInsights(responses || [], questions)
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 })

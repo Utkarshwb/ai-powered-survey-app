@@ -66,17 +66,17 @@ export function SurveyAnalyzer({ surveyId }: SurveyAnalyzerProps) {
           <div className="space-y-6">
             {/* Overall Score */}
             <div className="text-center">
-              <div className={`text-3xl font-bold ${getScoreColor(analysis.overall_score)}`}>
-                {analysis.overall_score}/10
+              <div className={`text-3xl font-bold ${getScoreColor(analysis?.overall_score || 5)}`}>
+                {analysis?.overall_score || 5}/10
               </div>
               <div className="text-sm text-gray-600">Overall Survey Quality</div>
-              <Progress value={analysis.overall_score * 10} className="mt-2" />
+              <Progress value={(analysis?.overall_score || 5) * 10} className="mt-2" />
             </div>
 
             {/* Completion Time */}
             <div className="flex items-center gap-2 text-sm">
               <Clock className="h-4 w-4" />
-              <span>Estimated completion time: {analysis.estimated_completion_time}</span>
+              <span>Estimated completion time: {analysis?.estimated_completion_time || "Not available"}</span>
             </div>
 
             {/* Strengths */}
@@ -86,11 +86,13 @@ export function SurveyAnalyzer({ surveyId }: SurveyAnalyzerProps) {
                 Strengths
               </h4>
               <div className="space-y-1">
-                {analysis.strengths.map((strength: string, index: number) => (
+                {analysis?.strengths && Array.isArray(analysis.strengths) ? analysis.strengths.map((strength: string, index: number) => (
                   <div key={index} className="text-sm text-green-600 bg-green-50 p-2 rounded">
                     {strength}
                   </div>
-                ))}
+                )) : (
+                  <div className="text-sm text-gray-500 p-2">No strengths identified yet</div>
+                )}
               </div>
             </div>
 
@@ -101,11 +103,13 @@ export function SurveyAnalyzer({ surveyId }: SurveyAnalyzerProps) {
                 Areas for Improvement
               </h4>
               <div className="space-y-1">
-                {analysis.weaknesses.map((weakness: string, index: number) => (
+                {analysis?.weaknesses && Array.isArray(analysis.weaknesses) ? analysis.weaknesses.map((weakness: string, index: number) => (
                   <div key={index} className="text-sm text-red-600 bg-red-50 p-2 rounded">
                     {weakness}
                   </div>
-                ))}
+                )) : (
+                  <div className="text-sm text-gray-500 p-2">No areas for improvement identified</div>
+                )}
               </div>
             </div>
 
@@ -113,31 +117,37 @@ export function SurveyAnalyzer({ surveyId }: SurveyAnalyzerProps) {
             <div>
               <h4 className="font-medium mb-2">Recommendations</h4>
               <div className="space-y-2">
-                {analysis.recommendations.map((rec: any, index: number) => (
+                {analysis?.recommendations && Array.isArray(analysis.recommendations) ? analysis.recommendations.map((rec: any, index: number) => (
                   <div key={index} className="border rounded p-3 text-sm">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline">{rec.type}</Badge>
+                      <Badge variant="outline">{rec.type || 'General'}</Badge>
                       {rec.question_index !== undefined && (
                         <span className="text-xs text-gray-500">Question {rec.question_index + 1}</span>
                       )}
                     </div>
-                    <div className="font-medium">{rec.suggestion}</div>
-                    <div className="text-gray-600 text-xs mt-1">{rec.reason}</div>
+                    <div className="font-medium">{rec.suggestion || rec.recommendation}</div>
+                    <div className="text-gray-600 text-xs mt-1">{rec.reason || rec.description}</div>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-sm text-gray-500 p-2">No recommendations available yet</div>
+                )}
               </div>
             </div>
 
             {/* Flow Analysis */}
             <div>
               <h4 className="font-medium mb-2">Flow Analysis</h4>
-              <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{analysis.flow_analysis}</div>
+              <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                {analysis?.flow_analysis || "Flow analysis not available"}
+              </div>
             </div>
 
             {/* Bias Check */}
             <div>
               <h4 className="font-medium mb-2">Bias Assessment</h4>
-              <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">{analysis.bias_check}</div>
+              <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
+                {analysis?.bias_check || "Bias assessment not available"}
+              </div>
             </div>
           </div>
         ) : (

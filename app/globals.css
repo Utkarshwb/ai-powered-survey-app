@@ -149,3 +149,16 @@
   animation: fade-in-up 0.6s ease-out forwards;
   opacity: 0;
 }
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}

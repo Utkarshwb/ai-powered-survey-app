@@ -25,17 +25,30 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
         body: JSON.stringify({
           survey,
           questions,
-          responses: responses.slice(0, 50), // Limit for API
+          responses: responses.length > 0 ? responses.slice(0, 50) : [], // Limit for API
           sessions,
+          hasResponses: responses.length > 0
         }),
       })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("API Error:", response.status, errorData)
+        throw new Error(`Failed to generate insights: ${errorData.error || 'Unknown error'}`)
+      }
 
       const data = await response.json()
       if (data.insights) {
         setInsights(data.insights)
+      } else {
+        console.error("No insights in response:", data)
+        throw new Error("No insights received from AI")
       }
     } catch (error) {
       console.error("Error generating insights:", error)
+      // You might want to show this error to the user
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      alert(`Error generating insights: ${errorMessage}`)
     } finally {
       setIsGenerating(false)
     }
@@ -59,7 +72,7 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button onClick={generateInsights} disabled={isGenerating || responses.length === 0} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+            <Button onClick={generateInsights} disabled={isGenerating} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -72,8 +85,10 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
                 </>
               )}
             </Button>
-            {responses.length === 0 && (
-              <p className="text-sm text-gray-500 mt-2">You need at least one response to generate insights</p>
+            {responses.length > 0 && (
+              <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                ✅ {responses.length} response{responses.length > 1 ? 's' : ''} available for analysis
+              </p>
             )}
           </CardContent>
         </Card>
@@ -90,15 +105,15 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
             <CardContent>
               <div className="flex items-center gap-4">
                 <div
-                  className={`text-3xl font-bold px-4 py-2 rounded-lg ${getSentimentColor(insights.sentiment_score)}`}
+                  className={`text-3xl font-bold px-4 py-2 rounded-lg ${getSentimentColor(insights?.sentiment_score || 5)}`}
                 >
-                  {insights.sentiment_score}/10
+                  {insights?.sentiment_score || 5}/10
                 </div>
                 <div>
                   <div className="font-medium">
-                    {insights.sentiment_score >= 8
+                    {(insights?.sentiment_score || 5) >= 8
                       ? "Very Positive"
-                      : insights.sentiment_score >= 6
+                      : (insights?.sentiment_score || 5) >= 6
                         ? "Neutral"
                         : "Needs Attention"}
                   </div>
@@ -118,12 +133,16 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {insights.key_findings.map((finding: string, index: number) => (
+                {insights?.key_findings && Array.isArray(insights.key_findings) ? insights.key_findings.map((finding: string, index: number) => (
                   <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
                     <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
                     <p className="text-blue-900">{finding}</p>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center text-gray-500 py-4">
+                    No key findings available yet
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -138,12 +157,16 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {insights.trends.map((trend: string, index: number) => (
+                {insights?.trends && Array.isArray(insights.trends) ? insights.trends.map((trend: string, index: number) => (
                   <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
                     <TrendingUp className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
                     <p className="text-green-900">{trend}</p>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center text-gray-500 py-4">
+                    No trends identified yet
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -158,14 +181,18 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {insights.recommendations.map((rec: string, index: number) => (
+                {insights?.recommendations && Array.isArray(insights.recommendations) ? insights.recommendations.map((rec: string, index: number) => (
                   <div key={index} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
                     <div className="w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                       {index + 1}
                     </div>
                     <p className="text-purple-900">{rec}</p>
                   </div>
-                ))}
+                )) : (
+                  <div className="text-center text-gray-500 py-4">
+                    No recommendations available yet
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -180,11 +207,11 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
                 <div className="space-y-3">
                   <div className="p-3 bg-gray-50 rounded">
                     <div className="font-medium">Quality Assessment</div>
-                    <div className="text-sm text-gray-600">{insights.response_quality}</div>
+                    <div className="text-sm text-gray-600">{insights?.response_quality || "Analyzing response quality..."}</div>
                   </div>
                   <div className="p-3 bg-gray-50 rounded">
                     <div className="font-medium">Completion Analysis</div>
-                    <div className="text-sm text-gray-600">{insights.completion_rate_analysis}</div>
+                    <div className="text-sm text-gray-600">{insights?.completion_rate_analysis || "Analyzing completion rates..."}</div>
                   </div>
                 </div>
               </CardContent>
@@ -196,12 +223,16 @@ export function AIInsights({ survey, questions, responses, sessions }: AIInsight
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {insights.notable_patterns.map((pattern: string, index: number) => (
+                  {insights?.notable_patterns && Array.isArray(insights.notable_patterns) ? insights.notable_patterns.map((pattern: string, index: number) => (
                     <div key={index} className="flex items-start gap-2 text-sm">
                       <AlertTriangle className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
                       <span>{pattern}</span>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-center text-gray-500 py-4 text-sm">
+                      No notable patterns identified yet
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

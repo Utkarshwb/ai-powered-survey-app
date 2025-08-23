@@ -1,0 +1,197 @@
+nohup: ignoring input
+
+> my-v0-project@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://10.51.113.224:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 1671ms
+ ✓ Compiled /middleware in 261ms (170 modules)
+ ○ Compiling /api/ai/generate-questions ...
+ ✓ Compiled /api/ai/generate-questions in 1101ms (453 modules)
+ POST /api/ai/generate-questions 401 in 1284ms
+ ✓ Compiled /api/test-improve in 159ms (455 modules)
+Testing AI improve with: { questionText: 'Do you like our product?', context: undefined }
+Raw AI response: ```json
+[
+  {
+    "question": "Overall, how satisfied are you with our product?",
+    "reason": "More specific than simply 'like.' Uses a recognized metric (satisfaction) and is more easily quantifiable for analysis. It's also less binary than 'like' or 'dislike'."
+  },
+  {
+    "question": "To what extent does our product meet your needs?",
+    "reason": "Focuses on the product's functionality and value to the user, rather than a subjective feeling. 'To what extent' allows for a range of responses beyond a simple yes/no. It also avoids any pre-conceived positive assumption."
+  }
+]
+```
+Cleaned AI response: [
+  {
+    "question": "Overall, how satisfied are you with our product?",
+    "reason": "More specific than simply 'like.' Uses a recognized metric (satisfaction) and is more easily quantifiable for analysis. It's also less binary than 'like' or 'dislike'."
+  },
+  {
+    "question": "To what extent does our product meet your needs?",
+    "reason": "Focuses on the product's functionality and value to the user, rather than a subjective feeling. 'To what extent' allows for a range of responses beyond a simple yes/no. It also avoids any pre-conceived positive assumption."
+  }
+]
+AI improvement result: {
+  success: true,
+  improvements: [
+    {
+      question: 'Overall, how satisfied are you with our product?',
+      reason: "More specific than simply 'like.' Uses a recognized metric (satisfaction) and is more easily quantifiable for analysis. It's also less binary than 'like' or 'dislike'."
+    },
+    {
+      question: 'To what extent does our product meet your needs?',
+      reason: "Focuses on the product's functionality and value to the user, rather than a subjective feeling. 'To what extent' allows for a range of responses beyond a simple yes/no. It also avoids any pre-conceived positive assumption."
+    }
+  ]
+}
+ POST /api/test-improve 200 in 2140ms
+ ○ Compiling /surveys/new ...
+ POST /api/ai/generate-questions 200 in 4146ms
+ ✓ Compiled /surveys/new in 1962ms (1379 modules)
+ GET /surveys/new 200 in 3108ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1337ms (1449 modules)
+ GET /dashboard 200 in 3558ms
+ GET /dashboard 200 in 1962ms
+ GET /dashboard 200 in 2844ms
+ ○ Compiling /surveys/[id]/analytics ...
+ ✓ Compiled /surveys/[id]/analytics in 1987ms (2951 modules)
+ GET /surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics 200 in 6616ms
+ ○ Compiling /auth/login ...
+ ✓ Compiled /auth/login in 911ms (2941 modules)
+ GET /auth/login 200 in 1012ms
+ GET /auth/login 200 in 13ms
+ GET /auth/login 200 in 17ms
+ GET /auth/login?id=99e237d3-b51d-408a-ba97-8500d4bcb83d&vscodeBrowserReqId=1755939655161 200 in 180ms
+ GET /auth/login 200 in 19ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1022ms (2812 modules)
+ GET /auth/login?id=99e237d3-b51d-408a-ba97-8500d4bcb83d&vscodeBrowserReqId=1755939723500 404 in 1133ms
+ GET /_next/static/css/app/layout.css?v=1755939724620 404 in 21ms
+ GET /_next/static/chunks/main-app.js?v=1755939724620 404 in 52ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 50ms
+ GET /_next/static/chunks/app/layout.js 404 in 50ms
+ GET /auth/login?id=99e237d3-b51d-408a-ba97-8500d4bcb83d&vscodeBrowserReqId=1755939724876 200 in 158ms
+ GET /_next/static/css/app/layout.css?v=1755939724922 404 in 39ms
+ GET /_next/static/chunks/main-app.js?v=1755939724922 404 in 132ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 130ms
+ GET /_next/static/chunks/app/auth/login/page.js 404 in 129ms
+ GET /_next/static/chunks/app/layout.js 404 in 131ms
+ GET /auth/login?id=99e237d3-b51d-408a-ba97-8500d4bcb83d&vscodeBrowserReqId=1755939726539 200 in 50ms
+ GET /_next/static/css/app/layout.css?v=1755939726561 404 in 32ms
+ GET /_next/static/chunks/main-app.js?v=1755939726561 404 in 138ms
+ GET /_next/static/chunks/app-pages-internals.js 404 in 137ms
+ GET /_next/static/chunks/app/auth/login/page.js 404 in 137ms
+ GET /_next/static/chunks/app/layout.js 404 in 137ms
+ ✓ Compiled in 550ms (1368 modules)
+ GET /surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics 200 in 100ms
+ ⨯ Failed to generate static paths for /surveys/[id]/analytics:
+Error: Cannot find module './vendor-chunks/next-themes.js'
+Require stack:
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/webpack-runtime.js
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/app/surveys/[id]/analytics/page.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/require.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/load-components.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/build/utils.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/dev/static-paths-worker.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/compiled/jest-worker/processChild.js
+    at __webpack_require__.f.require (.next/server/webpack-runtime.js:203:28)
+    at <unknown> (.next/server/webpack-runtime.js:111:40)
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (.next/server/webpack-runtime.js:110:67) {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array]
+}
+ ✓ Compiled /_not-found in 330ms (2812 modules)
+ GET /_next/static/css/app/layout.css?v=1755939765992 404 in 401ms
+ ✓ Compiled in 462ms (1371 modules)
+ ⨯ Error: Cannot find module './vendor-chunks/next-themes.js'
+Require stack:
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/webpack-runtime.js
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/app/surveys/[id]/analytics/page.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/require.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/load-components.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/build/utils.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/dev/static-paths-worker.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/compiled/jest-worker/processChild.js
+    at __webpack_require__.f.require (.next/server/webpack-runtime.js:203:28)
+    at <unknown> (.next/server/webpack-runtime.js:111:40)
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (.next/server/webpack-runtime.js:110:67) {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1337ms (3141 modules)
+ GET /surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics 500 in 1953ms
+ ⨯ Error: Cannot find module './vendor-chunks/next-themes.js'
+Require stack:
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/webpack-runtime.js
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/app/surveys/[id]/analytics/page.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/require.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/load-components.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/build/utils.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/dev/static-paths-worker.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/compiled/jest-worker/processChild.js
+    at __webpack_require__.f.require (.next/server/webpack-runtime.js:203:28)
+    at <unknown> (.next/server/webpack-runtime.js:111:40)
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (.next/server/webpack-runtime.js:110:67) {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics'
+}
+ GET /surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics 500 in 714ms
+ ⨯ Error: Cannot find module './vendor-chunks/next-themes.js'
+Require stack:
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/webpack-runtime.js
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/app/surveys/[id]/analytics/page.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/require.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/load-components.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/build/utils.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/dev/static-paths-worker.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/compiled/jest-worker/processChild.js
+    at __webpack_require__.f.require (.next/server/webpack-runtime.js:203:28)
+    at <unknown> (.next/server/webpack-runtime.js:111:40)
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (.next/server/webpack-runtime.js:110:67) {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics'
+}
+ GET /surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics 500 in 648ms
+ ⨯ Error: Cannot find module './vendor-chunks/next-themes.js'
+Require stack:
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/webpack-runtime.js
+- /home/linuxub/coding_files/ai-survey-tool/.next/server/app/surveys/[id]/analytics/page.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/require.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/load-components.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/build/utils.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/server/dev/static-paths-worker.js
+- /home/linuxub/coding_files/ai-survey-tool/node_modules/next/dist/compiled/jest-worker/processChild.js
+    at __webpack_require__.f.require (.next/server/webpack-runtime.js:203:28)
+    at <unknown> (.next/server/webpack-runtime.js:111:40)
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (.next/server/webpack-runtime.js:110:67) {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [Array],
+  page: '/surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics'
+}
+ GET /surveys/4c6de211-6738-43f6-b2e9-9c6a06910b9c/analytics 500 in 463ms
+ ✓ Compiled in 600ms (1610 modules)
+ ✓ Compiled in 575ms (1609 modules)
+ ✓ Compiled in 600ms (1609 modules)
+[?25h

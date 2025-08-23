@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sparkles, X, Loader2 } from "lucide-react"
-import { generateSurveyQuestions } from "@/lib/gemini"
 import type { Question } from "@/lib/types"
 
 interface AIQuestionGeneratorProps {
@@ -26,15 +25,35 @@ export function AIQuestionGenerator({ onQuestionsGenerated, onClose }: AIQuestio
 
     setIsGenerating(true)
     try {
-      const result = await generateSurveyQuestions(prompt, surveyType)
+      const response = await fetch('/api/ai/generate-questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          surveyType
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("API Error:", response.status, errorData)
+        throw new Error(`Failed to generate questions: ${errorData.error || 'Unknown error'}`)
+      }
+
+      const result = await response.json()
 
       if (result.success && result.questions) {
         setGeneratedQuestions(result.questions)
       } else {
         console.error("Failed to generate questions:", result.error)
+        throw new Error(result.error || "No questions generated")
       }
     } catch (error) {
       console.error("Error generating questions:", error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      alert(`Error generating questions: ${errorMessage}`)
     } finally {
       setIsGenerating(false)
     }
