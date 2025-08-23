@@ -50,6 +50,44 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs = 30000): Promise<T
   return Promise.race([promise, timeoutPromise])
 }
 
+// Retry wrapper for AI calls with exponential backoff
+async function withRetry<T>(
+  operation: () => Promise<T>, 
+  maxRetries = 2, 
+  baseDelay = 1000
+): Promise<T> {
+  let lastError: Error = new Error('Unknown error')
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation()
+    } catch (error) {
+      lastError = error as Error
+      
+      // Don't retry on certain errors
+      if (error instanceof Error) {
+        if (error.message.includes('API_KEY') || 
+            error.message.includes('SAFETY') ||
+            error.message.includes('Unauthorized')) {
+          throw error
+        }
+      }
+      
+      // Don't retry on the last attempt
+      if (attempt === maxRetries) {
+        break
+      }
+      
+      // Exponential backoff with jitter
+      const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000
+      console.log(`AI request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms...`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  
+  throw lastError
+}
+
 // Enhanced error handling
 function handleAIError(error: any, fallback: any = null) {
   console.error('AI Error:', error)
@@ -278,7 +316,7 @@ Please provide analysis in this JSON format:
 }
 `
 
-    const result = await withTimeout(model.generateContent(prompt))
+    const result = await withTimeout(model.generateContent(prompt), 60000) // 60 seconds for insights analysis
     const response = await result.response
     const text = response.text()
     
@@ -319,7 +357,7 @@ Generate questions that dig deeper into interesting responses or explore related
 Return as JSON array with same structure as before.
 `
 
-    const result = await withTimeout(model.generateContent(prompt))
+    const result = await withTimeout(model.generateContent(prompt), 45000) // 45 seconds for follow-up analysis
     const response = await result.response
     const text = response.text()
 
@@ -406,17 +444,51 @@ Requirements:
 - Include at least 2-4 items in each array
 - Make insights specific to the actual responses
 - Focus on actionable recommendations
+- CRITICAL: Return ONLY valid JSON, no explanations, no markdown, no extra text
+- Your response must start with { and end with }
 
 Return ONLY the JSON, no other text.
 `
     }
 
-    const result = await withTimeout(model.generateContent(prompt))
+    const result = await withRetry(
+      () => withTimeout(model.generateContent(prompt), 60000), // 60 seconds for complex insights
+      2, // max 2 retries
+      2000 // 2 second base delay
+    )
     const response = await result.response
     const text = response.text()
 
+    console.log('AI Raw Response:', text) // Debug logging
     const cleanedText = text.replace(/```json|```/g, '').trim()
-    const insights = JSON.parse(cleanedText)
+    console.log('Cleaned Text:', cleanedText) // Debug logging
+    
+    if (!cleanedText) {
+      throw new Error('Empty response from AI')
+    }
+    
+    let insights
+    try {
+      insights = JSON.parse(cleanedText)
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError)
+      console.error('Attempted to parse:', cleanedText)
+      
+      // Fallback: provide default insights structure
+      insights = {
+        summary: "Unable to generate detailed insights due to AI response format issue",
+        key_findings: ["AI response format error", "Please try again"],
+        trends: ["Technical issue detected"],
+        recommendations: ["Retry insight generation", "Check AI service status"],
+        sentiment: "neutral",
+        sentiment_score: 5,
+        notable_patterns: ["Response format issue"],
+        response_quality: "Unable to analyze due to technical issue",
+        completion_rate_analysis: "Analysis unavailable"
+      }
+      
+      console.warn('Using fallback insights due to parsing error')
+    }
 
     return {
       success: true,
