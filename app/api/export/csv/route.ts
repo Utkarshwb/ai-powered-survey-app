@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { surveyId, format = "responses" } = await request.json()
+    const { surveyId, format = "questions" } = await request.json()
 
     if (!surveyId) {
       return NextResponse.json({ error: "Survey ID is required" }, { status: 400 })
@@ -44,8 +44,7 @@ export async function POST(request: NextRequest) {
       .from("survey_sessions")
       .select("*")
       .eq("survey_id", surveyId)
-      .eq("completed_at", "not.null")
-      .order("completed_at", { ascending: false })
+      .order("created_at", { ascending: false })
 
     const { data: responses } = await supabase
       .from("responses")
@@ -55,73 +54,81 @@ export async function POST(request: NextRequest) {
       `)
       .eq("survey_sessions.survey_id", surveyId)
 
+    // Group responses by session_id to handle cases where sessions might be missing
+    const responsesBySession = responses?.reduce((acc: any, response: any) => {
+      const sessionId = response.session_id
+      if (!acc[sessionId]) {
+        acc[sessionId] = []
+      }
+      acc[sessionId].push(response)
+      return acc
+    }, {}) || {}
+
     let csvContent = ""
 
-    if (format === "responses") {
-      // Generate responses CSV
-      const headers = [
-        "Response ID",
-        "Submitted At",
-        "Completion Time",
-        "Email",
-        ...(questions?.map((q) => `Q${q.order_index + 1}: ${q.question_text}`) || []),
-      ]
+    // Generate CSV format optimized for AI training
+    const headers = [
+      "Response ID",
+      "Submitted At", 
+      "Completion Time",
+      "Email",
+      ...(questions?.map((q: any) => `Q${q.order_index + 1}: ${q.question_text}`) || []),
+    ]
 
-      csvContent = headers.join(",") + "\n"
+    csvContent = headers.join(",") + "\n"
 
-      sessions?.forEach((session) => {
-        const sessionResponses = responses?.filter((r) => r.session_id === session.id) || []
-        const completionTime =
-          session.started_at && session.completed_at
-            ? Math.round((new Date(session.completed_at).getTime() - new Date(session.started_at).getTime()) / 1000)
-            : ""
+    // If we have sessions, use them. Otherwise, use response groups
+    const sessionsToProcess = (sessions && sessions.length > 0) ? sessions : Object.keys(responsesBySession).map(sessionId => ({
+      id: sessionId,
+      completed_at: responsesBySession[sessionId][0]?.created_at || new Date().toISOString(),
+      started_at: null,
+      respondent_email: null
+    }))
 
-        const row = [
-          session.id.slice(-8),
-          new Date(session.completed_at).toISOString(),
-          completionTime ? `${completionTime}s` : "",
-          session.respondent_email || "",
-          ...(questions?.map((question) => {
-            const response = sessionResponses.find((r) => r.question_id === question.id)
-            if (!response) return ""
+    sessionsToProcess?.forEach((session: any) => {
+      const sessionResponses = (sessions && sessions.length > 0)
+        ? responses?.filter((r: any) => r.session_id === session.id) || []
+        : responsesBySession[session.id] || []
+      
+      const completionTime =
+        session.started_at && session.completed_at
+          ? Math.round((new Date(session.completed_at).getTime() - new Date(session.started_at).getTime()) / 1000)
+          : ""
 
+      const row = [
+        session.id.slice(-8),
+        new Date(session.completed_at).toISOString(),
+        completionTime ? `${completionTime}s` : "",
+        session.respondent_email || "",
+        ...(questions?.map((question: any) => {
+          const response = sessionResponses.find((r: any) => r.question_id === question.id)
+          const responseValue = response ? (() => {
             switch (question.question_type) {
               case "rating":
+              case "scale":
                 return response.answer_number || ""
               case "yes_no":
                 return response.answer_boolean ? "Yes" : "No"
               case "number":
                 return response.answer_number || ""
               default:
-                return `"${(response.answer_text || "").replace(/"/g, '""')}"` // Escape quotes
+                // For text responses, clean and escape properly
+                const text = response.answer_text || ""
+                return `"${text.replace(/"/g, '""')}"`
             }
-          }) || []),
-        ]
+          })() : ""
+          
+          return responseValue
+        }) || []),
+      ]
 
-        csvContent += row.join(",") + "\n"
-      })
-    } else if (format === "summary") {
-      // Generate summary CSV
-      csvContent = "Question,Type,Total Responses,Response Rate\n"
-
-      questions?.forEach((question) => {
-        const questionResponses = responses?.filter((r) => r.question_id === question.id) || []
-        const responseRate = sessions?.length ? (questionResponses.length / sessions.length) * 100 : 0
-
-        csvContent +=
-          [
-            `"${question.question_text.replace(/"/g, '""')}"`,
-            question.question_type,
-            questionResponses.length,
-            `${Math.round(responseRate)}%`,
-          ].join(",") + "\n"
-      })
-    }
+      csvContent += row.join(",") + "\n"
+    })
 
     return new Response(csvContent, {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="${survey.title.replace(/[^a-zA-Z0-9]/g, "_")}_${format}.csv"`,
+        "Content-Disposition": `attachment; filename="${survey.title.replace(/[^a-zA-Z0-9]/g, "_")}_survey_data.csv"`,
       },
     })
   } catch (error) {

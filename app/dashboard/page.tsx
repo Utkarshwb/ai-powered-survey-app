@@ -46,8 +46,8 @@ export default async function DashboardPage() {
       />
       <div className="relative z-10">
         <DashboardHeader user={data.user} />
-        <main className="container mx-auto px-4 pt-20 pb-8">
-          <div className="space-y-8">
+        <main className="container mx-auto px-3 sm:px-4 pt-16 sm:pt-20 pb-6 sm:pb-8">
+          <div className="space-y-6 sm:space-y-8">
             <DashboardStats userId={data.user.id} />
             <SurveyList userId={data.user.id} />
           </div>

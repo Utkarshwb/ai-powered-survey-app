@@ -162,3 +162,47 @@
 .animate-shimmer {
   animation: shimmer 2s infinite;
 }
+
+/* Mobile-friendly improvements */
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Ensure tables are scrollable on mobile */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Better touch targets */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent text from being too small */
+  .text-sm {
+    font-size: 0.875rem;
+  }
+  
+  /* Better spacing for mobile */
+  .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+  
+  .space-y-8 > * + * {
+    margin-top: 1.5rem;
+  }
+}
+
+/* Prevent horizontal scroll */
+body {
+  overflow-x: hidden;
+}
+
+/* Ensure inputs are readable on mobile */
+input, textarea, select {
+  font-size: 16px; /* Prevents zoom on iOS */
+}

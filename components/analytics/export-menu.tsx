@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Download, FileText, Database, FileSpreadsheet, Loader2 } from "lucide-react"
+import { Download, FileText, Database, FileSpreadsheet, Loader2, Copy, Check, Link, Share } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 interface ExportMenuProps {
   surveyId: string
@@ -19,6 +20,29 @@ interface ExportMenuProps {
 
 export function ExportMenu({ surveyId, surveyTitle }: ExportMenuProps) {
   const [isExporting, setIsExporting] = useState<string | null>(null)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const { toast } = useToast()
+
+  const copyPublicLink = async () => {
+    try {
+      const publicUrl = `${window.location.origin}/survey/${surveyId}`
+      await navigator.clipboard.writeText(publicUrl)
+      setCopiedLink(true)
+      
+      toast({
+        title: "Link copied!",
+        description: "Survey link has been copied to your clipboard.",
+      })
+      
+      setTimeout(() => setCopiedLink(false), 2000)
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy link to clipboard.",
+        variant: "destructive",
+      })
+    }
+  }
 
   const handleExport = async (format: string, type?: string) => {
     setIsExporting(format)
@@ -28,13 +52,9 @@ export function ExportMenu({ surveyId, surveyTitle }: ExportMenuProps) {
       const body: any = { surveyId }
 
       switch (format) {
-        case "csv-responses":
+        case "csv":
           endpoint = "/api/export/csv"
-          body.format = "responses"
-          break
-        case "csv-summary":
-          endpoint = "/api/export/csv"
-          body.format = "summary"
+          body.format = "questions"
           break
         case "json":
           endpoint = "/api/export/json"
@@ -83,46 +103,57 @@ export function ExportMenu({ surveyId, surveyTitle }: ExportMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" disabled={isExporting !== null}>
+        <Button variant="outline" disabled={isExporting !== null} className="gap-2">
           {isExporting ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Exporting...
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="hidden sm:inline">Exporting...</span>
             </>
           ) : (
             <>
-              <Download className="h-4 w-4 mr-2" />
-              Export Data
+              <Share className="h-4 w-4" />
+              <span className="hidden sm:inline">Share & Export</span>
             </>
           )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Export Options</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-
-        <DropdownMenuItem onClick={() => handleExport("csv-responses")}>
-          <FileSpreadsheet className="h-4 w-4 mr-2" />
-          CSV - All Responses
+        <DropdownMenuLabel>Share Survey</DropdownMenuLabel>
+        
+        <DropdownMenuItem onClick={copyPublicLink}>
+          {copiedLink ? (
+            <>
+              <Check className="h-4 w-4 mr-2 text-green-600" />
+              Link Copied!
+            </>
+          ) : (
+            <>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Survey Link
+            </>
+          )}
         </DropdownMenuItem>
 
-        <DropdownMenuItem onClick={() => handleExport("csv-summary")}>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel>Export Data</DropdownMenuLabel>
+
+        <DropdownMenuItem onClick={() => handleExport("csv")}>
           <FileSpreadsheet className="h-4 w-4 mr-2" />
-          CSV - Summary Report
+          Export CSV
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onClick={() => handleExport("json")}>
           <Database className="h-4 w-4 mr-2" />
-          JSON - Complete Data
+          Export JSON
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onClick={() => handleExport("pdf")}>
           <FileText className="h-4 w-4 mr-2" />
-          HTML Report
+          Export PDF
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

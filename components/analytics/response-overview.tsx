@@ -48,12 +48,12 @@ export function ResponseOverview({ sessions, responses, questions }: ResponseOve
   })
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       {/* Daily Responses */}
       <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-white">Daily Responses</CardTitle>
-          <CardDescription className="text-gray-700 dark:text-gray-300">Response count over the last 7 days</CardDescription>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">Daily Responses</CardTitle>
+          <CardDescription className="text-gray-700 dark:text-gray-300 text-sm">Response count over the last 7 days</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer
@@ -63,12 +63,12 @@ export function ResponseOverview({ sessions, responses, questions }: ResponseOve
                 color: "hsl(var(--chart-1))",
               },
             }}
-            className="h-[200px]"
+            className="h-[180px] sm:h-[200px]"
           >
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={dailyData}>
-                <XAxis dataKey="date" />
-                <YAxis />
+              <LineChart data={dailyData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                <XAxis dataKey="date" fontSize={12} />
+                <YAxis fontSize={12} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Line
                   type="monotone"
@@ -85,9 +85,9 @@ export function ResponseOverview({ sessions, responses, questions }: ResponseOve
 
       {/* Completion Status */}
       <Card className="border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-gray-900 dark:text-white">Completion Status</CardTitle>
-          <CardDescription className="text-gray-700 dark:text-gray-300">Survey completion breakdown</CardDescription>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-gray-900 dark:text-white text-base sm:text-lg">Completion Status</CardTitle>
+          <CardDescription className="text-gray-700 dark:text-gray-300 text-sm">Survey completion breakdown</CardDescription>
         </CardHeader>
         <CardContent>
           <ChartContainer

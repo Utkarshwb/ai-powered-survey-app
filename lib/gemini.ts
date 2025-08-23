@@ -8,7 +8,7 @@ const isAIEnabled = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !==
 // - Gemini 2.5 Flash: Fast question generation
 // - Gemini 2.5 Pro: Complex analysis and insights
 const FAST_MODEL = "gemini-2.5-flash"     // For question generation  
-const SMART_MODEL = "gemini-2.5-flash"      // For insights and analysis
+const SMART_MODEL = "gemini-2.5-pro"      // For insights and analysis
 
 let genAI: GoogleGenerativeAI
 try {

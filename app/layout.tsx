@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "FormWise - Intelligent Survey Builder",
   description: "Create intelligent surveys with AI-powered question generation",
   generator: "v0.app",
+  viewport: "width=device-width, initial-scale=1",
 }
 
 export default function RootLayout({
