@@ -8,7 +8,7 @@ const isAIEnabled = process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !==
 // - Gemini 2.5 Flash: Fast question generation
 // - Gemini 2.5 Pro: Complex analysis and insights
 const FAST_MODEL = "gemini-2.5-flash"     // For question generation  
-const SMART_MODEL = "gemini-2.5-pro"      // For insights and analysis
+const SMART_MODEL = "gemini-2.5-flash"      // For insights and analysis
 
 let genAI: GoogleGenerativeAI
 try {
@@ -450,18 +450,18 @@ Requirements:
 Return ONLY the JSON, no other text.
 `
     }
-
+    
     const result = await withRetry(
-      () => withTimeout(model.generateContent(prompt), 60000), // 60 seconds for complex insights
+      async () => {
+        return await withTimeout(model.generateContent(prompt), 60000)
+      },
       2, // max 2 retries
       2000 // 2 second base delay
     )
     const response = await result.response
     const text = response.text()
 
-    console.log('AI Raw Response:', text) // Debug logging
     const cleanedText = text.replace(/```json|```/g, '').trim()
-    console.log('Cleaned Text:', cleanedText) // Debug logging
     
     if (!cleanedText) {
       throw new Error('Empty response from AI')

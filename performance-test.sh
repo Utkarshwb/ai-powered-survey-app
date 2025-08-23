@@ -51,3 +51,5 @@ echo "   • Dashboard: http://localhost:3000/dashboard (requires login)"
 echo "   • Survey: http://localhost:3000/survey/[id] (no login needed)"
 echo ""
 echo "📈 Monitor performance in Chrome DevTools > Lighthouse"
+
+
